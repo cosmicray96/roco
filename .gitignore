@@ -1,0 +1,6 @@
+.cache/
+
+_builds/
+_outputs/
+
+compile_commands.json
