@@ -5,7 +5,7 @@
 #include <memory>
 
 namespace roco {
-namespace dsa {
+namespace core {
 namespace collection {
 
 template <typename T>
@@ -54,5 +54,5 @@ class is_collection_elem_i {
 */
 
 } // namespace collection
-} // namespace dsa
+} // namespace core
 } // namespace roco
