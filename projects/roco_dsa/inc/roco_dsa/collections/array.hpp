@@ -2,9 +2,11 @@
 
 #include "roco_dsa/allocators/allocator.hpp"
 #include "roco_dsa/collections/collection.hpp"
+#include "roco_dsa/roco_dsa.hpp"
 
 #include <concepts>
 #include <cstddef>
+#include <ostream>
 #include <utility>
 
 namespace roco {
@@ -49,6 +51,38 @@ public:
     swap(new_array);
     return *this;
   }
+
+public:
+  T &operator[](size_t index) {
+
+    if (index + 1 > m_count) {
+      m_count = index + 1;
+    }
+    return m_data[index];
+  }
+  const T &operator[](size_t index) const { return m_data[index]; }
+
+  friend std::ostream &operator<<(std::ostream &os, const array<T, A> &arr)
+    requires roco_dsa::is_printable<T>
+  {
+    if (arr.m_count == 0) {
+      os << "[ ]";
+      return os;
+    }
+    if (arr.m_count == 1) {
+      os << "[ " << arr[0] << " ]";
+      return os;
+    }
+    os << "[ ";
+    for (size_t i = 0; i < arr.m_count - 1; i++) {
+      os << arr[i] << ", ";
+    }
+    os << arr[arr.m_count - 1] << " ]";
+    return os;
+  }
+
+public:
+  size_t count() const noexcept { return m_count; }
 
 private:
   void swap(array &other) noexcept {
