@@ -2,6 +2,7 @@
 
 #include "roco_core/allocators/allocator.hpp"
 #include "roco_core/collections/collection.hpp"
+#include "roco_core/collections/iterator.hpp"
 #include "roco_core/roco_core.hpp"
 
 #include <concepts>
@@ -13,28 +14,15 @@ namespace roco {
 namespace core {
 namespace collection {
 
-template <typename T, typename A>
-    requires is_collection_elem<T> && is_allocator<A>
+template <typename t_elem>
+    requires is_collection_elem<t_elem>
 class array {
   public:
-    using t_elem = T;
+    array(size_t capacity, allocators::allocator *allocator)
+        : m_data((t_elem *)(allocator->alloc(capacity * sizeof(t_elem)))), m_capacity(capacity),
+          m_count(0) {}
 
-  public:
-    array(size_t capacity)
-        : m_data((T *)(A::alloc(capacity * sizeof(T)))), m_capacity(capacity), m_count(0) {}
-
-    ~array() { A::dealloc(m_data); }
-
-    array(const array &other) : m_capacity(other.m_capacity), m_count(other.m_count) {
-        m_data = A::alloc(m_capacity * sizeof(T));
-        memcpy(m_data, other.m_data, m_capacity * sizeof(T));
-    }
-
-    array &operator=(const array &other) {
-        array new_array(other);
-        swap(new_array);
-        return *this;
-    }
+    ~array() { allocators::registry::dealloc(m_data); }
 
     array(array &&other) noexcept
         : m_data(other.m_data), m_capacity(other.m_capacity), m_count(other.m_count) {
@@ -50,17 +38,25 @@ class array {
     }
 
   public:
-    T &operator[](size_t index) {
+    static array<t_elem> copy(const array<t_elem> &other, allocators::allocator *a) {
+        array<t_elem> new_array(other.m_capacity, a);
+        new_array.m_count = other.m_count;
+        memcpy(new_array.m_data, other.m_data, new_array.m_capacity * sizeof(t_elem));
+        return new_array;
+    }
+
+  public:
+    t_elem &operator[](size_t index) {
 
         if (index + 1 > m_count) {
             m_count = index + 1;
         }
         return m_data[index];
     }
-    const T &operator[](size_t index) const { return m_data[index]; }
+    const t_elem &operator[](size_t index) const { return m_data[index]; }
 
-    friend std::ostream &operator<<(std::ostream &os, const array<T, A> &arr)
-        requires roco_core::is_printable<T>
+    friend std::ostream &operator<<(std::ostream &os, const array<t_elem> &arr)
+        requires roco_core::is_printable<t_elem>
     {
         if (arr.m_count == 0) {
             os << "[ ]";
@@ -89,9 +85,43 @@ class array {
     }
 
   private:
-    T *m_data;
+    t_elem *m_data;
     size_t m_capacity;
     size_t m_count;
+};
+
+template <typename t_elem> class array_iterator {
+  public:
+    class dyn : public iterator<t_elem> {
+      public:
+        dyn(array_iterator *arr_it) : self(&arr_it) {}
+        virtual ~dyn() = default;
+
+      public:
+        virtual void inc() override {}
+        virtual bool equals(const iterator<t_elem> &other) override {}
+        virtual t_elem get() override {}
+
+      private:
+        std::unique_ptr<array_iterator> self;
+    };
+
+  public:
+    array_iterator(array<t_elem>) {}
+    ~array_iterator() = default;
+    array_iterator(const array_iterator &other) {}
+    array_iterator &operator=(const array_iterator &other) {}
+    array_iterator &operator=(array_iterator &&other) {}
+    array_iterator(array_iterator &&other) {}
+
+  public:
+    iterator<t_elem> to_iterator() { return dyn{}; }
+
+  private:
+    void swap(array_iterator &other) {}
+
+  private:
+    t_elem *ptr;
 };
 
 } // namespace collection

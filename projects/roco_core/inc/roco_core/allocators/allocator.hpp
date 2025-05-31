@@ -5,14 +5,25 @@
 
 namespace roco {
 namespace core {
-namespace collection {
+namespace allocators {
 
-template <typename T>
-concept is_allocator = requires {
-    { T::alloc(std::size_t{}) } -> std::convertible_to<void *>;
-    { T::dealloc((void *)nullptr) } -> std::same_as<void>;
+class allocator {
+  public:
+    virtual void *alloc(size_t bytes) = 0;
+    virtual void dealloc(void *ptr) = 0;
+    virtual bool belongs(void *ptr) = 0;
 };
 
-} // namespace collection
+class registry {
+  private:
+    registry();
+
+  public:
+    static void init();
+    static void add(allocator *a);
+    static void dealloc(void *ptr);
+};
+
+} // namespace allocators
 } // namespace core
 } // namespace roco

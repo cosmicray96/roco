@@ -5,14 +5,18 @@
 
 namespace roco {
 namespace core {
-namespace collection {
+namespace allocators {
 
-class allocator_heap {
-  public:
-    static void *alloc(size_t byte_count) { return malloc(byte_count); }
-    static void dealloc(void *ptr) { free(ptr); }
+class heap : public allocator {
+public:
+  virtual void *alloc(size_t byte_count) override { return malloc(byte_count); }
+  virtual void dealloc(void *ptr) override { free(ptr); }
+  virtual bool belongs(void *ptr) override { return true; }
+
+public:
+  static heap s_;
 };
 
-} // namespace collection
+} // namespace allocators
 } // namespace core
 } // namespace roco
