@@ -5,7 +5,7 @@
 #include "roco_core/collections/iterator.hpp"
 #include "roco_core/roco_core.hpp"
 
-#include <concepts>
+#include <algorithm>
 #include <cstddef>
 #include <ostream>
 #include <utility>
@@ -13,6 +13,8 @@
 namespace roco {
 namespace core {
 namespace collection {
+
+template <typename t_elem> class array_iterator;
 
 template <typename t_elem>
     requires is_collection_elem<t_elem>
@@ -36,6 +38,31 @@ class array {
         swap(new_array);
         return *this;
     }
+
+  public:
+    array_iterator<t_elem> beg() { return array_iterator<t_elem>(m_data); }
+    array_iterator<t_elem> end() { return array_iterator<t_elem>(m_data + m_count); }
+
+  public:
+    class dyn : public collection<t_elem> {
+      public:
+        dyn(array *arr) : m_(arr) {}
+        virtual ~dyn() = default;
+        dyn(const dyn &other) = default;
+        dyn &operator=(const dyn &other) = default;
+        dyn &operator=(dyn &&other) = default;
+        dyn(dyn &&other) = default;
+
+      public:
+        virtual size_t count() override { return m_->count(); }
+        virtual iterator<t_elem> beg() override { return m_->beg().to_iterator(); }
+        virtual iterator<t_elem> end() override { return m_->end().to_iterator(); }
+
+      private:
+        array *m_;
+    };
+
+    collection<t_elem> *to_collection() { return dyn(this); }
 
   public:
     static array<t_elem> copy(const array<t_elem> &other, allocators::allocator *a) {
@@ -94,7 +121,7 @@ template <typename t_elem> class array_iterator {
   public:
     class dyn : public iterator<t_elem> {
       public:
-        dyn(array_iterator *arr_it) : m_(&arr_it) {}
+        dyn(array_iterator arr_it) : m_(std::move(arr_it)) {}
         virtual ~dyn() = default;
         dyn(const dyn &other) = default;
         dyn &operator=(const dyn &other) = default;
@@ -102,14 +129,14 @@ template <typename t_elem> class array_iterator {
         dyn(dyn &&other) = default;
 
       public:
-        virtual void inc() override { m_->inc(); }
+        virtual void inc() override { m_.inc(); }
         virtual bool equals(const iterator<t_elem> &other) override {
-            return m_->equals(dynamic_cast<dyn>(other).m_);
+            return m_.equals(dynamic_cast<dyn>(other).m_);
         }
-        virtual t_elem get() override { return m_->get(); }
+        virtual t_elem get() override { return m_.get(); }
 
       private:
-        std::unique_ptr<array_iterator> m_;
+        array_iterator<t_elem> m_;
     };
 
   public:
