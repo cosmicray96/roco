@@ -4,6 +4,7 @@
 #include "roco_core/collections/collection.hpp"
 #include "roco_core/collections/iterator.hpp"
 #include "roco_core/roco_core.hpp"
+#include "roco_core/smart_ptr.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -168,8 +169,8 @@ public:
   t_elem get() { return *m_ptr; }
 
 public:
-  std::unique_ptr<iterator<t_elem>> to_iterator() {
-    return std::make_unique<dyn>(*this);
+  uptr<iterator<t_elem>> to_iterator(allocators::allocator &allocator) {
+    return uptr<dyn>(allocator, *this);
   }
 
 private:
