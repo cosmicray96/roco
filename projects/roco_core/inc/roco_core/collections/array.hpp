@@ -13,7 +13,7 @@
 
 namespace roco {
 namespace core {
-namespace collection {
+namespace collections {
 
 template <typename t_elem> class array_iterator;
 
@@ -25,7 +25,12 @@ class array {
         : m_data((t_elem *)(allocator.alloc(capacity * sizeof(t_elem)))), m_capacity(capacity),
           m_count(0) {}
 
-    ~array() { allocators::registry::dealloc(m_data); }
+    ~array() {
+        if (m_data) {
+            allocators::registry::dealloc(m_data);
+            m_data = nullptr;
+        }
+    }
 
     array(const array &other) = default;
     array &operator=(const array &other) = default;
@@ -50,7 +55,7 @@ class array {
   public:
     class dyn : public collection<t_elem> {
       public:
-        dyn(array arr) : m_(std::move(arr)) {}
+        dyn(array &arr) : m_(arr) {}
         virtual ~dyn() = default;
         dyn(const dyn &other) = default;
         dyn &operator=(const dyn &other) = default;
@@ -58,12 +63,16 @@ class array {
         dyn(dyn &&other) = default;
 
       public:
-        virtual size_t count() override { return m_->count(); }
-        virtual iterator<t_elem> beg() override { return m_->beg().to_iterator(); }
-        virtual iterator<t_elem> end() override { return m_->end().to_iterator(); }
+        virtual size_t count() override { return m_.count(); }
+        virtual uptr<iterator<t_elem>> beg(allocators::allocator &a) override {
+            return m_.beg().to_iterator(a);
+        }
+        virtual uptr<iterator<t_elem>> end(allocators::allocator &a) override {
+            return m_.end().to_iterator(a);
+        }
 
       private:
-        array m_;
+        array &m_;
     };
 
     uptr<collection<t_elem>> to_collection(allocators::allocator &allocator) {
@@ -127,7 +136,7 @@ template <typename t_elem> class array_iterator {
   public:
     class dyn : public iterator<t_elem> {
       public:
-        dyn(array_iterator arr_it) : m_(std::move(arr_it)) {}
+        dyn(array_iterator &arr_it) : m_(arr_it) {}
         virtual ~dyn() = default;
         dyn(const dyn &other) = default;
         dyn &operator=(const dyn &other) = default;
@@ -135,6 +144,7 @@ template <typename t_elem> class array_iterator {
         dyn(dyn &&other) = default;
 
       public:
+        virtual t_elem &operator*() override { return *m_; }
         virtual void inc() override { m_.inc(); }
         virtual bool equals(const iterator<t_elem> &other) override {
             const dyn *other_ptr = dynamic_cast<const dyn *>(&other);
@@ -147,7 +157,7 @@ template <typename t_elem> class array_iterator {
         virtual t_elem get() override { return m_.get(); }
 
       private:
-        array_iterator<t_elem> m_;
+        array_iterator<t_elem> &m_;
     };
 
   public:
@@ -159,6 +169,7 @@ template <typename t_elem> class array_iterator {
     array_iterator(array_iterator &&other) = default;
 
   public:
+    t_elem &operator*() { return *m_ptr; }
     void inc() { m_ptr++; }
     bool equals(const array_iterator<t_elem> &other) { return m_ptr == other.m_ptr; }
     t_elem get() { return *m_ptr; }
@@ -172,6 +183,6 @@ template <typename t_elem> class array_iterator {
     t_elem *m_ptr;
 };
 
-} // namespace collection
+} // namespace collections
 } // namespace core
 } // namespace roco

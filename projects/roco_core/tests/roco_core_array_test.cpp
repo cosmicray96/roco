@@ -6,7 +6,7 @@
 #include <cassert>
 #include <cstdint>
 
-using namespace roco::core::collection;
+using namespace roco::core::collections;
 using namespace roco::core;
 int main() {
 
@@ -41,6 +41,37 @@ int main() {
 
     for (size_t i = 0; !it3->equals(*it4.get()); it3->inc(), i++) {
         assert(it3->get() == i * 10);
+    }
+
+    ///////
+
+    array<int32_t> arr4(10, heap);
+    for (size_t i = 0; i < 10; i++) {
+        arr4[i] = i * 10;
+    }
+    array_iterator<int32_t> it7 = arr4.beg();
+    array_iterator<int32_t> it8 = arr4.end();
+    while (!it7.equals(it8)) {
+        (*it7) = 5;
+        it7.inc();
+    }
+    for (size_t i = 0; i < 10; i++) {
+        assert(arr4[i] == 5);
+    }
+
+    ///////////
+
+    array<int32_t> arr3(10, heap);
+    for (size_t i = 0; i < 10; i++) {
+        arr3[i] = i * 10;
+    }
+    uptr<collection<int32_t>> col3 = arr3.to_collection(heap);
+    array_iterator<int32_t> it5 = arr3.beg();
+    uptr<iterator<int32_t>> it6 = col3->beg(heap);
+    for (size_t i = 0; i < 10; i++) {
+        assert(it5.get() == it6->get());
+    }
+    for (size_t i = 0; i < 10; i++) {
     }
 
     return 0;
