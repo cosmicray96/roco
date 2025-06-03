@@ -53,7 +53,7 @@ public:
 public:
   class dyn : public collection<t_elem> {
   public:
-    dyn(const array &arr) : m_(arr) {}
+    dyn(array arr) : m_(std::move(arr)) {}
     virtual ~dyn() = default;
     dyn(const dyn &other) = default;
     dyn &operator=(const dyn &other) = default;
@@ -69,7 +69,9 @@ public:
     array m_;
   };
 
-  collection<t_elem> *to_collection() { return dyn(this); }
+  uptr<collection<t_elem>> to_collection(allocators::allocator &allocator) {
+    return make_uptr_dyn<collection<t_elem>, dyn>(allocator, *this);
+  }
 
 public:
   static array<t_elem> copy(const array<t_elem> &other,
@@ -170,7 +172,7 @@ public:
 
 public:
   uptr<iterator<t_elem>> to_iterator(allocators::allocator &allocator) {
-    return uptr<dyn>(allocator, *this);
+    return make_uptr_dyn<iterator<t_elem>, dyn>(allocator, *this);
   }
 
 private:
