@@ -1,11 +1,17 @@
+
+
 #include "roco_core/allocators/heap.hpp"
 #include "roco_core/collections/array.hpp"
+#include "roco_core/smart_ptr.hpp"
 #include <cassert>
 #include <cstdint>
 
 using namespace roco::core::collection;
+using namespace roco::core;
 int main() {
-    array<int> arr(10, &roco::core::allocators::heap::s_);
+
+    allocators::heap &heap = allocators::heap::s_;
+    array<int> arr(10, heap);
 
     std::cout << "arr at 0: " << arr << std::endl;
 
@@ -19,7 +25,7 @@ int main() {
     std::cout << "count: " << arr.count() << std::endl;
     assert(arr.count() == 3);
 
-    array<int32_t> arr1(10, &roco::core::allocators::heap::s_);
+    array<int32_t> arr1(10, heap);
     for (size_t i = 0; i < 5; i++) {
         arr1[i] = i * 10;
     }
@@ -30,8 +36,8 @@ int main() {
         assert(it1.get() == i * 10);
     }
 
-    std::unique_ptr<iterator<int32_t>> it3 = arr1.beg().to_iterator();
-    std::unique_ptr<iterator<int32_t>> it4 = arr1.beg().to_iterator();
+    uptr<iterator<int32_t>> it3 = arr1.beg().to_iterator(heap);
+    uptr<iterator<int32_t>> it4 = arr1.beg().to_iterator(heap);
 
     for (size_t i = 0; !it3->equals(*it4.get()); it3->inc(), i++) {
         assert(it3->get() == i * 10);
