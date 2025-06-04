@@ -32,8 +32,8 @@ class array {
         }
     }
 
-    array(const array &other) = default;
-    array &operator=(const array &other) = default;
+    array(const array &other) = delete;
+    array &operator=(const array &other) = delete;
 
     array(array &&other) noexcept
         : m_data(other.m_data), m_capacity(other.m_capacity), m_count(other.m_count) {
@@ -118,6 +118,7 @@ class array {
 
   public:
     size_t count() const noexcept { return m_count; }
+    size_t capacity() const noexcept { return m_capacity; }
 
   private:
     void swap(array &other) noexcept {

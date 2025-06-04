@@ -15,5 +15,5 @@ include("${CMAKE_CURRENT_LIST_DIR}/cmake/add_defines.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/add_target.cmake")
 
 # Add subprojects
-add_subdirectory(projects/p01)
+# add_subdirectory(projects/p01)
 add_subdirectory(projects/roco_core)

@@ -74,5 +74,21 @@ int main() {
     for (size_t i = 0; i < 10; i++) {
     }
 
+    //////
+
+    array<int32_t> arr5(10, heap);
+    for (size_t i = 0; i < 10; i++) {
+        arr5[i] = i * 10;
+    }
+    array<int32_t> arr7(std::move(arr5));
+    assert(arr5.count() == 0);
+    assert(arr7.count() == 10);
+    for (size_t i = 0; i < 10; i++) {
+        assert(arr7[i] == i * 10);
+    }
+
+    array<int32_t> arr9 = array<int32_t>(10, heap);
+    assert(arr9.capacity() == 10);
+
     return 0;
 }
