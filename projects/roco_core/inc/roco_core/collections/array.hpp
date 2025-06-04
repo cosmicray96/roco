@@ -15,8 +15,6 @@ namespace roco {
 namespace core {
 namespace collections {
 
-template <typename t_elem> class array_iterator;
-
 template <typename t_elem>
     requires is_collection_elem<t_elem>
 class array {
@@ -46,37 +44,6 @@ class array {
         array new_array(std::move(other));
         swap(new_array);
         return *this;
-    }
-
-  public:
-    array_iterator<t_elem> beg() { return array_iterator<t_elem>(m_data); }
-    array_iterator<t_elem> end() { return array_iterator<t_elem>(m_data + m_count); }
-
-  public:
-    class dyn : public collection<t_elem> {
-      public:
-        dyn(array &arr) : m_(arr) {}
-        virtual ~dyn() = default;
-        dyn(const dyn &other) = default;
-        dyn &operator=(const dyn &other) = default;
-        dyn &operator=(dyn &&other) = default;
-        dyn(dyn &&other) = default;
-
-      public:
-        virtual size_t count() override { return m_.count(); }
-        virtual uptr<iterator<t_elem>> beg(allocators::allocator &a) override {
-            return m_.beg().to_iterator(a);
-        }
-        virtual uptr<iterator<t_elem>> end(allocators::allocator &a) override {
-            return m_.end().to_iterator(a);
-        }
-
-      private:
-        array &m_;
-    };
-
-    uptr<collection<t_elem>> to_collection(allocators::allocator &allocator) {
-        return make_uptr_dyn<collection<t_elem>, dyn>(allocator, *this);
     }
 
   public:
@@ -127,62 +94,122 @@ class array {
         std::swap(m_count, other.m_count);
     }
 
-  private:
+  public:
     t_elem *m_data;
     size_t m_capacity;
     size_t m_count;
 };
 
-template <typename t_elem> class array_iterator {
+template <typename t_elem> class array_it {
   public:
-    class dyn : public iterator<t_elem> {
-      public:
-        dyn(array_iterator &arr_it) : m_(arr_it) {}
-        virtual ~dyn() = default;
-        dyn(const dyn &other) = default;
-        dyn &operator=(const dyn &other) = default;
-        dyn &operator=(dyn &&other) = default;
-        dyn(dyn &&other) = default;
-
-      public:
-        virtual t_elem &operator*() override { return *m_; }
-        virtual void inc() override { m_.inc(); }
-        virtual bool equals(const iterator<t_elem> &other) override {
-            const dyn *other_ptr = dynamic_cast<const dyn *>(&other);
-            if (!other_ptr) {
-                return false;
-            }
-            return m_.equals(other_ptr->m_);
-        }
-
-        virtual t_elem get() override { return m_.get(); }
-
-      private:
-        array_iterator<t_elem> &m_;
-    };
-
-  public:
-    array_iterator(t_elem *ptr) : m_ptr(ptr) {}
-    ~array_iterator() = default;
-    array_iterator(const array_iterator &other) = default;
-    array_iterator &operator=(const array_iterator &other) = default;
-    array_iterator &operator=(array_iterator &&other) = default;
-    array_iterator(array_iterator &&other) = default;
+    array_it(t_elem *ptr) : m_ptr(ptr) {}
+    ~array_it() = default;
+    array_it(const array_it &other) = default;
+    array_it &operator=(const array_it &other) = default;
+    array_it(array_it &&other) : m_ptr(other.m_ptr) { other.m_ptr = nullptr; }
+    array_it &operator=(array_it &&other) {
+        array_it temp(std::move(other));
+        swap(temp);
+        return *this;
+    }
 
   public:
     t_elem &operator*() { return *m_ptr; }
     void inc() { m_ptr++; }
-    bool equals(const array_iterator<t_elem> &other) { return m_ptr == other.m_ptr; }
+    bool equals(const array_it<t_elem> &other) { return m_ptr == other.m_ptr; }
     t_elem get() { return *m_ptr; }
 
-  public:
-    uptr<iterator<t_elem>> to_iterator(allocators::allocator &allocator) {
-        return make_uptr_dyn<iterator<t_elem>, dyn>(allocator, *this);
-    }
-
   private:
+    void swap(array_it &other) { std::swap(m_ptr, other.m_ptr); }
+
+  public:
     t_elem *m_ptr;
 };
+
+template <typename t_elem>
+    requires is_collection_elem<t_elem>
+array_it<t_elem> to_array_it_beg(array<t_elem> &arr) {
+    return array_it<t_elem>(arr.m_data);
+}
+template <typename t_elem>
+    requires is_collection_elem<t_elem>
+array_it<t_elem> to_array_it_end(array<t_elem> &arr) {
+    return array_it<t_elem>(arr.m_data + arr.m_count);
+}
+
+////////////
+
+//////////
+
+template <typename t_elem>
+    requires is_collection_elem<t_elem>
+class iterator_array_it : public iterator<t_elem> {
+  public:
+    iterator_array_it(array_it<t_elem> &&arr_it) : m_(std::move(arr_it)) {}
+    virtual ~iterator_array_it() = default;
+    iterator_array_it(const iterator_array_it &other) = default;
+    iterator_array_it &operator=(const iterator_array_it &other) = default;
+    iterator_array_it &operator=(iterator_array_it &&other) = default;
+    iterator_array_it(iterator_array_it &&other) = default;
+
+  public:
+    virtual t_elem &operator*() override { return *m_; }
+    virtual void inc() override { m_.inc(); }
+    virtual bool equals(const iterator<t_elem> &other) override {
+        const iterator_array_it *other_ptr = dynamic_cast<const iterator_array_it *>(&other);
+        if (!other_ptr) {
+            return false;
+        }
+        return m_.equals(other_ptr->m_);
+    }
+
+    virtual t_elem get() override { return m_.get(); }
+
+  public:
+    array_it<t_elem> m_;
+};
+
+template <typename t_elem>
+    requires is_collection_elem<t_elem>
+uptr<iterator<t_elem>> into_iterator(array_it<t_elem> &&it, allocators::allocator &allocator) {
+    uptr<iterator<t_elem>> output =
+        make_uptr_dyn<iterator<t_elem>, iterator_array_it<t_elem>>(allocator, std::move(it));
+    return output;
+}
+
+//////////?
+
+template <typename t_elem>
+    requires is_collection_elem<t_elem>
+class collection_view_array : public collection_view<t_elem> {
+  public:
+    collection_view_array(array<t_elem> &arr) : m_(arr) {}
+    virtual ~collection_view_array() = default;
+    collection_view_array(const collection_view_array &other) = default;
+    collection_view_array &operator=(const collection_view_array &other) = default;
+    collection_view_array &operator=(collection_view_array &&other) = default;
+    collection_view_array(collection_view_array &&other) = default;
+
+  public:
+    virtual size_t count() override { return m_.count(); }
+    virtual uptr<iterator<t_elem>> beg(allocators::allocator &a) override {
+        return into_iterator(to_array_it_beg(m_), a);
+    }
+    virtual uptr<iterator<t_elem>> end(allocators::allocator &a) override {
+        return into_iterator(to_array_it_end(m_), a);
+    }
+
+  public:
+    array<t_elem> &m_;
+};
+
+template <typename t_elem>
+uptr<collection_view<t_elem>> to_collection_view(array<t_elem> &arr,
+                                                 allocators::allocator &allocator) {
+    return make_uptr_dyn<collection_view<t_elem>, collection_view_array<t_elem>>(allocator, arr);
+}
+
+///////////
 
 } // namespace collections
 } // namespace core

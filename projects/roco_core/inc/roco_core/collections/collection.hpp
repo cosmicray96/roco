@@ -15,14 +15,14 @@ namespace collections {
 template <typename T>
 concept is_collection_elem = std::copyable<T> && std::movable<T> && std::default_initializable<T>;
 
-template <typename t_elem> class collection {
+template <typename t_elem> class collection_view {
   public:
-    collection() = default;
-    virtual ~collection() = default;
-    collection(const collection &other) = default;
-    collection &operator=(const collection &other) = default;
-    collection &operator=(collection &&other) = default;
-    collection(collection &&other) = default;
+    collection_view() = default;
+    virtual ~collection_view() = default;
+    collection_view(const collection_view &other) = default;
+    collection_view &operator=(const collection_view &other) = default;
+    collection_view &operator=(collection_view &&other) = default;
+    collection_view(collection_view &&other) = default;
 
   public:
     virtual size_t count() = 0;
