@@ -9,9 +9,9 @@
 using namespace roco::core::collections;
 using namespace roco::core;
 int main() {
+    using namespace roco::core::allocators;
 
-    allocators::heap &heap = allocators::heap::s_;
-    array<int> arr(10, heap);
+    array<int, 10, heap> arr;
 
     std::cout << "arr at 0: " << arr << std::endl;
 
@@ -25,19 +25,21 @@ int main() {
     std::cout << "count: " << arr.count() << std::endl;
     assert(arr.count() == 3);
 
-    array<int32_t> arr1(10, heap);
+    array<int32_t, 10, heap> arr1;
     for (size_t i = 0; i < 5; i++) {
         arr1[i] = i * 10;
     }
-    array_it<int32_t> it1 = to_array_it_beg<int32_t>(arr1);
-    array_it<int32_t> it2 = to_array_it_end(arr1);
+    array_it<int32_t> it1 = arr1.to_array_it_beg();
+    array_it<int32_t> it2 = arr1.to_array_it_end();
 
     for (size_t i = 0; !it1.equals(it2); it1.inc(), i++) {
         assert(it1.get() == i * 10);
     }
 
-    uptr<iterator<int32_t>> it3 = into_iterator(to_array_it_beg(arr1), heap);
-    uptr<iterator<int32_t>> it4 = into_iterator(to_array_it_end(arr1), heap);
+    uptr<iterator<int32_t>, heap> it3 = arr1.to_array_it_beg().to_iterator<heap>();
+
+    uptr<iterator<int32_t>, heap> it4 =
+        make_uptr_dyn<iterator<int32_t>, array_it<int32_t>, heap>(arr1.to_array_it_end());
 
     for (size_t i = 0; !it3->equals(*it4.get()); it3->inc(), i++) {
         assert(it3->get() == i * 10);
@@ -45,12 +47,12 @@ int main() {
 
     ///////
 
-    array<int32_t> arr4(10, heap);
+    array<int32_t, 10, heap> arr4;
     for (size_t i = 0; i < 10; i++) {
         arr4[i] = i * 10;
     }
-    array_it<int32_t> it7 = to_array_it_beg(arr4);
-    array_it<int32_t> it8 = to_array_it_end(arr4);
+    array_it<int32_t> it7 = arr4.to_array_it_beg();
+    array_it<int32_t> it8 = arr4.to_array_it_end();
     while (!it7.equals(it8)) {
         (*it7) = 5;
         it7.inc();
@@ -61,33 +63,25 @@ int main() {
 
     ///////////
 
-    array<int32_t> arr3(10, heap);
+    array<int32_t, 10, heap> arr3;
     for (size_t i = 0; i < 10; i++) {
         arr3[i] = i * 10;
-    }
-    uptr<collection_view<int32_t>> col3 = to_collection_view(arr3, heap);
-    array_it<int32_t> it5 = to_array_it_beg(arr3);
-    uptr<iterator<int32_t>> it6 = col3->beg(heap);
-    for (size_t i = 0; i < 10; i++) {
-        assert(it5.get() == it6->get());
-    }
-    for (size_t i = 0; i < 10; i++) {
     }
 
     //////
 
-    array<int32_t> arr5(10, heap);
+    array<int32_t, 10, heap> arr5;
     for (size_t i = 0; i < 10; i++) {
         arr5[i] = i * 10;
     }
-    array<int32_t> arr7(std::move(arr5));
+    array<int32_t, 10, heap> arr7(std::move(arr5));
     assert(arr5.count() == 0);
     assert(arr7.count() == 10);
     for (size_t i = 0; i < 10; i++) {
         assert(arr7[i] == i * 10);
     }
 
-    array<int32_t> arr9 = array<int32_t>(10, heap);
+    array<int32_t, 10, heap> arr9 = array<int32_t, 10, heap>();
     assert(arr9.capacity() == 10);
 
     return 0;

@@ -29,7 +29,7 @@ template <typename A, typename T, typename... Args>
     requires is_allocator<A>
 T *alloc_type(Args &&...args) {
     void *ptr = A::alloc(sizeof(T), alignof(T));
-    T *output = new (ptr) T(std::forward(args)...);
+    T *output = new (ptr) T(std::forward<Args>(args)...);
     return output;
 }
 template <typename A, typename T>
@@ -51,7 +51,7 @@ T *alloc_type_array(size_t count, Args &&...args) {
     return reinterpret_cast<T *>(ptr);
 }
 
-template <typename A, typename T, typename... Args>
+template <typename A, typename T>
     requires is_allocator<A>
 void delloc_type_array(T *ptr, size_t count) {
     size_t al_size = aligned_size_type<T>();

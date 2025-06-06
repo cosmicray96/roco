@@ -10,14 +10,14 @@ namespace core {
 template <typename T, typename A>
     requires allocators::is_allocator<A>
 class uptr {
-  public:
+  private:
     uptr() : m_(nullptr), m_delete_fn(nullptr) {}
 
   public:
     ~uptr() {
         if (m_) {
             m_delete_fn(m_);
-            A::dealloc(m_);
+            allocators::dealloc_type<A, T>(m_);
         }
     }
 
@@ -52,15 +52,54 @@ class uptr {
     }
 
   public:
+    template <typename _T, typename _A>
+        requires allocators::is_allocator<_A>
+    friend uptr<_T, _A> take_uptr(_T *ptr);
+
+    template <typename _T, typename _U, typename _A>
+        requires std::is_base_of_v<_T, _U> && allocators::is_allocator<_A>
+    friend uptr<_T, _A> take_uptr_dyn(_U *ptr);
+
+    template <typename _T, typename _A, typename... _Args>
+        requires allocators::is_allocator<_A>
+    friend uptr<_T, _A> make_uptr(_Args &&...args);
+
+    template <typename _T, typename _U, typename _A, typename... _Args>
+        requires std::is_base_of_v<_T, _U> && allocators::is_allocator<_A>
+    friend uptr<_T, _A> make_uptr_dyn(_Args &&...args);
+
+    template <typename _T, typename _U, typename _A>
+        requires allocators::is_allocator<_A> && std::is_base_of_v<_T, _U>
+    friend uptr<_T, _A> take_uptr_dyn(uptr<_U, _A> &&ptr);
+
+  private:
     T *m_;
     void (*m_delete_fn)(T *);
 };
+
+template <typename T, typename A>
+    requires allocators::is_allocator<A>
+uptr<T, A> take_uptr(T *ptr) {
+    uptr<T, A> p;
+    p.m_ = ptr;
+    p.m_delete_fn = [](T *ptr) { ptr->~T(); };
+    return p;
+}
+
+template <typename T, typename U, typename A>
+    requires std::is_base_of_v<T, U> && allocators::is_allocator<A>
+uptr<T, A> take_uptr_dyn(U *ptr) {
+    uptr<T, A> p;
+    p.m_ = reinterpret_cast<T *>(ptr);
+    p.m_delete_fn = [](T *ptr) { reinterpret_cast<U *>(ptr)->~U(); };
+    return p;
+}
 
 template <typename T, typename A, typename... Args>
     requires allocators::is_allocator<A>
 uptr<T, A> make_uptr(Args &&...args) {
     uptr<T, A> ptr;
-    ptr.m_ = A::template alloc<T>(std::forward<Args>(args)...);
+    ptr.m_ = allocators::alloc_type<A, T, Args...>(std::forward<Args>(args)...);
     ptr.m_delete_fn = [](T *ptr) { ptr->~T(); };
     return ptr;
 }
@@ -69,11 +108,22 @@ template <typename T, typename U, typename A, typename... Args>
     requires std::is_base_of_v<T, U> && allocators::is_allocator<A>
 uptr<T, A> make_uptr_dyn(Args &&...args) {
     uptr<T, A> ptr;
-    ptr.m_ = reinterpret_cast<T *>(A::template alloc<U>(std::forward<Args>(args)...));
+    ptr.m_ =
+        reinterpret_cast<T *>(allocators::alloc_type<A, U, Args...>(std::forward<Args>(args)...));
     ptr.m_delete_fn = [](T *ptr) { reinterpret_cast<U *>(ptr)->~U(); };
     return ptr;
 }
 
+template <typename T, typename U, typename A>
+    requires allocators::is_allocator<A> && std::is_base_of_v<T, U>
+uptr<T, A> take_uptr_dyn(uptr<U, A> &&ptr) {
+    uptr<T, A> p;
+    p.m_ = reinterpret_cast<T *>(ptr.m_);
+    p.m_delete_fn = ptr.m_delete_fn;
+    ptr.m_ = nullptr;
+    ptr.m_delete_fn = nullptr;
+    return p;
+}
 //////
 /*
 template <typename T> class sptr_ctx {
