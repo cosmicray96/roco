@@ -15,29 +15,27 @@ namespace roco {
 namespace core {
 namespace collections {
 
-template <typename t_elem>
-    requires is_collection_elem<t_elem>
+template <typename t_elem, size_t t_capacity, typename A>
+    requires is_collection_elem<t_elem> && allocators::is_allocator<A>
 class array {
   public:
-    array(size_t capacity, allocators::allocator &allocator)
-        : m_data((t_elem *)(allocator.alloc(capacity * sizeof(t_elem)))), m_capacity(capacity),
-          m_count(0) {}
+    array() = default;
 
     ~array() {
         if (m_data) {
-            allocators::registry::dealloc(m_data);
+            A::template dealloc(m_data);
             m_data = nullptr;
         }
     }
 
-    array(const array &other) = delete;
-    array &operator=(const array &other) = delete;
+    array(const array &other) = default;
+    array &operator=(const array &other) = default;
 
-    array(array &&other) noexcept
-        : m_data(other.m_data), m_capacity(other.m_capacity), m_count(other.m_count) {
-        // should call dtor on this
+    array(array &&other) noexcept {
+        this->~array();
+        m_data = std::move(other.m_data);
+        m_count = std::move(other.m_count);
         other.m_data = nullptr;
-        other.m_capacity = 0;
         other.m_count = 0;
     }
 
@@ -48,13 +46,6 @@ class array {
     }
 
   public:
-    static array copy(const array &other, allocators::allocator &a) {
-        array new_array(other.m_capacity, a);
-        new_array.m_count = other.m_count;
-        memcpy(new_array.m_data, other.m_data, new_array.m_capacity * sizeof(t_elem));
-        return new_array;
-    }
-
   public:
     t_elem &operator[](size_t index) {
         if (index + 1 > m_count) {
@@ -64,41 +55,51 @@ class array {
     }
     const t_elem &operator[](size_t index) const { return m_data[index]; }
 
-    friend std::ostream &operator<<(std::ostream &os, const array<t_elem> &arr)
-        requires roco_core::is_printable<t_elem>
-    {
-        if (arr.m_count == 0) {
-            os << "[ ]";
-            return os;
-        }
-        if (arr.m_count == 1) {
-            os << "[ " << arr[0] << " ]";
-            return os;
-        }
-        os << "[ ";
-        for (size_t i = 0; i < arr.m_count - 1; i++) {
-            os << arr[i] << ", ";
-        }
-        os << arr[arr.m_count - 1] << " ]";
-        return os;
-    }
-
   public:
     size_t count() const noexcept { return m_count; }
-    size_t capacity() const noexcept { return m_capacity; }
+    size_t capacity() const noexcept { return t_capacity; }
 
-  private:
+  public:
     void swap(array &other) noexcept {
         std::swap(m_data, other.m_data);
-        std::swap(m_capacity, other.m_capacity);
         std::swap(m_count, other.m_count);
     }
 
   public:
-    t_elem *m_data;
-    size_t m_capacity;
-    size_t m_count;
+    t_elem *m_data = nullptr;
+    size_t m_count = 0;
 };
+template <typename t_elem, size_t t_capacity, typename A>
+    requires is_collection_elem<t_elem> && allocators::is_allocator<A> &&
+             roco_core::is_printable<t_elem>
+std::ostream &operator<<(std::ostream &os, const array<t_elem, t_capacity, A> &arr) {
+    if (arr.m_count == 0) {
+        os << "[ ]";
+        return os;
+    }
+    if (arr.m_count == 1) {
+        os << "[ " << arr[0] << " ]";
+        return os;
+    }
+    os << "[ ";
+    for (size_t i = 0; i < arr.m_count - 1; i++) {
+        os << arr[i] << ", ";
+    }
+    os << arr[arr.m_count - 1] << " ]";
+    return os;
+}
+
+///////
+
+template <typename T, size_t t_capacity, typename A>
+    requires is_collection_elem<T> && allocators::is_allocator<A>
+array<T, t_capacity, A> make_array() {
+
+    array<T, t_capacity, A> arr;
+    arr.m_data = allocators::alloc_type_array<A, T>(t_capacity);
+    arr.m_count = 0;
+    return arr;
+}
 
 template <typename t_elem> class array_it {
   public:
@@ -126,18 +127,16 @@ template <typename t_elem> class array_it {
     t_elem *m_ptr;
 };
 
-template <typename t_elem>
-    requires is_collection_elem<t_elem>
-array_it<t_elem> to_array_it_beg(array<t_elem> &arr) {
+template <typename t_elem, size_t t_capacity, typename A>
+    requires is_collection_elem<t_elem> && allocators::is_allocator<A>
+array_it<t_elem> to_array_it_beg(array<t_elem, t_capacity, A> &arr) {
     return array_it<t_elem>(arr.m_data);
 }
-template <typename t_elem>
-    requires is_collection_elem<t_elem>
-array_it<t_elem> to_array_it_end(array<t_elem> &arr) {
+template <typename t_elem, size_t t_capacity, typename A>
+    requires is_collection_elem<t_elem> && allocators::is_allocator<A>
+array_it<t_elem> to_array_it_end(array<t_elem, t_capacity, A> &arr) {
     return array_it<t_elem>(arr.m_data + arr.m_count);
 }
-
-////////////
 
 //////////
 

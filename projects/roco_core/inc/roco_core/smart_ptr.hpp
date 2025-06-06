@@ -7,16 +7,17 @@
 namespace roco {
 namespace core {
 
-template <typename T> class uptr {
+template <typename T, typename A>
+    requires allocators::is_allocator<A>
+class uptr {
   public:
-  private:
     uptr() : m_(nullptr), m_delete_fn(nullptr) {}
 
   public:
     ~uptr() {
         if (m_) {
             m_delete_fn(m_);
-            allocators::registry::dealloc(m_);
+            A::dealloc(m_);
         }
     }
 
@@ -44,46 +45,37 @@ template <typename T> class uptr {
         return temp;
     }
 
-  private:
+  public:
     void swap(uptr &other) {
         std::swap(m_, other.m_);
         std::swap(m_delete_fn, other.m_delete_fn);
     }
 
-  private:
-    template <typename A, typename... Args>
-    friend uptr<A> make_uptr(allocators::allocator &allocator, Args &&...args);
-
-    template <typename A, typename B, typename... Args>
-        requires std::is_base_of_v<A, B>
-    friend uptr<A> make_uptr_dyn(allocators::allocator &allocator, Args &&...args);
-
-  private:
+  public:
     T *m_;
     void (*m_delete_fn)(T *);
 };
 
-template <typename T, typename... Args>
-uptr<T> make_uptr(allocators::allocator &allocator, Args &&...args) {
-    uptr<T> ptr;
-    void *temp = allocator.alloc(sizeof(T));
-    ptr.m_ = (new (temp) T(std::forward<Args>(args)...));
+template <typename T, typename A, typename... Args>
+    requires allocators::is_allocator<A>
+uptr<T, A> make_uptr(Args &&...args) {
+    uptr<T, A> ptr;
+    ptr.m_ = A::template alloc<T>(std::forward<Args>(args)...);
     ptr.m_delete_fn = [](T *ptr) { ptr->~T(); };
     return ptr;
 }
 
-template <typename T, typename U, typename... Args>
-    requires std::is_base_of_v<T, U>
-uptr<T> make_uptr_dyn(allocators::allocator &allocator, Args &&...args) {
-    uptr<T> ptr;
-    void *temp = allocator.alloc(sizeof(U));
-    U *temp2 = (new (temp) U(std::forward<Args>(args)...));
-    ptr.m_ = reinterpret_cast<T *>(temp2);
+template <typename T, typename U, typename A, typename... Args>
+    requires std::is_base_of_v<T, U> && allocators::is_allocator<A>
+uptr<T, A> make_uptr_dyn(Args &&...args) {
+    uptr<T, A> ptr;
+    ptr.m_ = reinterpret_cast<T *>(A::template alloc<U>(std::forward<Args>(args)...));
     ptr.m_delete_fn = [](T *ptr) { reinterpret_cast<U *>(ptr)->~U(); };
     return ptr;
 }
 
 //////
+/*
 template <typename T> class sptr_ctx {
   public:
     void decrement_ref() {
@@ -98,10 +90,12 @@ template <typename T> class sptr_ctx {
     T *m_ptr = nullptr;
     size_t m_ref_count = 0;
 };
+
 template <typename T> class sptr {
   public:
-    sptr(allocators::allocator &allocator) {
-        m_ctx = reinterpret_cast<sptr_ctx<T> *>(allocator.alloc(sizeof(sptr_ctx<T>)));
+    sptr() {
+        m_ctx = reinterpret_cast<sptr_ctx<T>
+*>(allocator.alloc(sizeof(sptr_ctx<T>)));
     }
     ~sptr() {
         if (m_ctx) {
@@ -132,8 +126,8 @@ template <typename T> class sptr {
 
 template <typename T, typename U, typename... Args>
     requires std::is_base_of_v<T, U>
-sptr<T> make_sptr_dyn(allocators::allocator &allocator, Args &&...args) {
-    sptr<T> ptr;
+sptr<T, A> make_sptr_dyn(allocators::allocator &allocator, Args &&...args) {
+    sptr<T, A> ptr;
 
     void *temp = allocator.alloc(sizeof(U));
     U *temp2 = new (temp) U(std::forward(args)...);
@@ -141,6 +135,6 @@ sptr<T> make_sptr_dyn(allocators::allocator &allocator, Args &&...args) {
     ptr.m_ctx.m_ref_count = 1;
     return ptr;
 }
-
+*/
 } // namespace core
 } // namespace roco

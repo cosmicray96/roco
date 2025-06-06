@@ -15,7 +15,9 @@ namespace collections {
 template <typename T>
 concept is_collection_elem = std::copyable<T> && std::movable<T> && std::default_initializable<T>;
 
-template <typename t_elem> class collection_view {
+template <typename t_elem, typename A>
+    requires allocators::is_allocator<A>
+class collection_view {
   public:
     collection_view() = default;
     virtual ~collection_view() = default;
@@ -26,8 +28,8 @@ template <typename t_elem> class collection_view {
 
   public:
     virtual size_t count() = 0;
-    virtual uptr<iterator<t_elem>> beg(allocators::allocator &a) = 0;
-    virtual uptr<iterator<t_elem>> end(allocators::allocator &a) = 0;
+    virtual uptr<iterator<t_elem>, A> beg() = 0;
+    virtual uptr<iterator<t_elem>, A> end() = 0;
 };
 
 } // namespace collections
