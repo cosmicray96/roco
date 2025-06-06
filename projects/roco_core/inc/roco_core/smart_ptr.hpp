@@ -83,5 +83,64 @@ uptr<T> make_uptr_dyn(allocators::allocator &allocator, Args &&...args) {
     return ptr;
 }
 
+//////
+template <typename T> class sptr_ctx {
+  public:
+    void decrement_ref() {
+        m_ref_count--;
+        if (m_ref_count <= 0) {
+            ~sptr_ctx();
+        }
+    }
+
+  public:
+    // this should store allocator here
+    T *m_ptr = nullptr;
+    size_t m_ref_count = 0;
+};
+template <typename T> class sptr {
+  public:
+    sptr(allocators::allocator &allocator) {
+        m_ctx = reinterpret_cast<sptr_ctx<T> *>(allocator.alloc(sizeof(sptr_ctx<T>)));
+    }
+    ~sptr() {
+        if (m_ctx) {
+            m_ctx->m_ref_count--;
+        }
+    }
+
+    sptr(const sptr &other) : m_ctx(other.m_ctx) { m_ctx->m_ref_count++; }
+    sptr &operator=(const sptr &other) {
+        sptr temp(other);
+        swap(temp);
+        return *this;
+    }
+
+    sptr(sptr &&other) : m_ctx(std::move(other.m_ctx)) {}
+    sptr operator=(sptr &&other) {
+        sptr temp(other);
+        swap(temp);
+        return *this;
+    }
+
+  public:
+    void swap(sptr_ctx<T> &other) { std::swap(m_ctx, other.m_ctx); }
+
+  public:
+    sptr_ctx<T> *m_ctx;
+};
+
+template <typename T, typename U, typename... Args>
+    requires std::is_base_of_v<T, U>
+sptr<T> make_sptr_dyn(allocators::allocator &allocator, Args &&...args) {
+    sptr<T> ptr;
+
+    void *temp = allocator.alloc(sizeof(U));
+    U *temp2 = new (temp) U(std::forward(args)...);
+    ptr.m_ctx.m_ptr = reinterpret_cast<T *>(temp2);
+    ptr.m_ctx.m_ref_count = 1;
+    return ptr;
+}
+
 } // namespace core
 } // namespace roco

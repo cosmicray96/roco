@@ -35,6 +35,7 @@ class array {
 
     array(array &&other) noexcept
         : m_data(other.m_data), m_capacity(other.m_capacity), m_count(other.m_count) {
+        // should call dtor on this
         other.m_data = nullptr;
         other.m_capacity = 0;
         other.m_count = 0;
@@ -47,8 +48,8 @@ class array {
     }
 
   public:
-    static array<t_elem> copy(const array<t_elem> &other, allocators::allocator &a) {
-        array<t_elem> new_array(other.m_capacity, a);
+    static array copy(const array &other, allocators::allocator &a) {
+        array new_array(other.m_capacity, a);
         new_array.m_count = other.m_count;
         memcpy(new_array.m_data, other.m_data, new_array.m_capacity * sizeof(t_elem));
         return new_array;
@@ -56,7 +57,6 @@ class array {
 
   public:
     t_elem &operator[](size_t index) {
-
         if (index + 1 > m_count) {
             m_count = index + 1;
         }
