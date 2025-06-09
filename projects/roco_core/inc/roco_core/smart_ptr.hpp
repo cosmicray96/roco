@@ -1,6 +1,7 @@
 #pragma once
 
 #include "roco_core/allocators/allocator.hpp"
+#include <concepts>
 #include <type_traits>
 #include <utility>
 
@@ -10,27 +11,40 @@ namespace core {
 template <typename T, typename A>
     requires allocators::is_allocator<A>
 class uptr {
-  private:
-    uptr() : m_(nullptr), m_delete_fn(nullptr) {}
-
   public:
-    ~uptr() {
-        if (m_) {
-            m_delete_fn(m_);
-            allocators::dealloc_type<A, T>(m_);
-        }
-    }
+    uptr() = default;
+    ~uptr() { destroy(); }
 
     uptr(const uptr &other) = delete;
     uptr &operator=(const uptr &other) = delete;
 
-    uptr(uptr &&other) : m_(other.m_), m_delete_fn(other.m_delete_fn) {
+    uptr(uptr &&other) {
+        using std::swap;
+        swap(*this, other);
+    }
+
+    uptr &operator=(uptr &&other) {
+        destroy();
+        swap(*this, other);
+        return *this;
+    }
+
+  public:
+    template <typename U>
+        requires std::is_base_of_v<T, U>
+    uptr(uptr<U, A> &&other) : m_(static_cast<T *>(other.m_)), m_delete_fn(other.m_delete_fn) {
         other.m_ = nullptr;
         other.m_delete_fn = nullptr;
     }
-    uptr &operator=(uptr &&other) {
-        uptr temp(std::move(other));
-        swap(temp);
+
+    template <typename U>
+        requires std::is_base_of_v<T, U>
+    uptr &operator=(uptr<U, A> &&other) {
+        destroy();
+        m_ = static_cast<T *>(other.m_);
+        m_delete_fn = other.m_delete_fn;
+        other.m_ = nullptr;
+        other.m_delete_fn = nullptr;
         return *this;
     }
 
@@ -45,146 +59,200 @@ class uptr {
         return temp;
     }
 
+    void destroy() {
+        if (m_) {
+            m_delete_fn(m_);
+            m_ = nullptr;
+            m_delete_fn = nullptr;
+        }
+    }
+
   public:
-    void swap(uptr &other) {
-        std::swap(m_, other.m_);
-        std::swap(m_delete_fn, other.m_delete_fn);
+    friend void swap(uptr &a, uptr &b) {
+        using std::swap;
+        swap(a.m_, b.m_);
+        swap(a.m_delete_fn, b.m_delete_fn);
     }
 
   public:
     template <typename _T, typename _A>
         requires allocators::is_allocator<_A>
-    friend uptr<_T, _A> take_uptr(_T *ptr);
-
-    template <typename _T, typename _U, typename _A>
-        requires std::is_base_of_v<_T, _U> && allocators::is_allocator<_A>
-    friend uptr<_T, _A> take_uptr_dyn(_U *ptr);
+    friend uptr<_T, _A> uptr_take(_T *ptr);
 
     template <typename _T, typename _A, typename... _Args>
         requires allocators::is_allocator<_A>
-    friend uptr<_T, _A> make_uptr(_Args &&...args);
-
-    template <typename _T, typename _U, typename _A, typename... _Args>
-        requires std::is_base_of_v<_T, _U> && allocators::is_allocator<_A>
-    friend uptr<_T, _A> make_uptr_dyn(_Args &&...args);
-
-    template <typename _T, typename _U, typename _A>
-        requires allocators::is_allocator<_A> && std::is_base_of_v<_T, _U>
-    friend uptr<_T, _A> take_uptr_dyn(uptr<_U, _A> &&ptr);
+    friend uptr<_T, _A> uptr_make(_Args &&...args);
 
   private:
-    T *m_;
-    void (*m_delete_fn)(T *);
+    T *m_ = nullptr;
+    void (*m_delete_fn)(void *) = nullptr;
 };
 
 template <typename T, typename A>
     requires allocators::is_allocator<A>
-uptr<T, A> take_uptr(T *ptr) {
+uptr<T, A> uptr_take(T *ptr) {
     uptr<T, A> p;
     p.m_ = ptr;
-    p.m_delete_fn = [](T *ptr) { ptr->~T(); };
-    return p;
-}
-
-template <typename T, typename U, typename A>
-    requires std::is_base_of_v<T, U> && allocators::is_allocator<A>
-uptr<T, A> take_uptr_dyn(U *ptr) {
-    uptr<T, A> p;
-    p.m_ = reinterpret_cast<T *>(ptr);
-    p.m_delete_fn = [](T *ptr) { reinterpret_cast<U *>(ptr)->~U(); };
+    p.m_delete_fn = [](void *ptr) { allocators::dealloc_type<A>(static_cast<T *>(ptr)); };
     return p;
 }
 
 template <typename T, typename A, typename... Args>
     requires allocators::is_allocator<A>
-uptr<T, A> make_uptr(Args &&...args) {
+uptr<T, A> uptr_make(Args &&...args) {
     uptr<T, A> ptr;
     ptr.m_ = allocators::alloc_type<A, T, Args...>(std::forward<Args>(args)...);
-    ptr.m_delete_fn = [](T *ptr) { ptr->~T(); };
+    ptr.m_delete_fn = [](void *ptr) { allocators::dealloc_type<A>(static_cast<T *>(ptr)); };
     return ptr;
 }
 
-template <typename T, typename U, typename A, typename... Args>
-    requires std::is_base_of_v<T, U> && allocators::is_allocator<A>
-uptr<T, A> make_uptr_dyn(Args &&...args) {
-    uptr<T, A> ptr;
-    ptr.m_ =
-        reinterpret_cast<T *>(allocators::alloc_type<A, U, Args...>(std::forward<Args>(args)...));
-    ptr.m_delete_fn = [](T *ptr) { reinterpret_cast<U *>(ptr)->~U(); };
-    return ptr;
-}
-
-template <typename T, typename U, typename A>
-    requires allocators::is_allocator<A> && std::is_base_of_v<T, U>
-uptr<T, A> take_uptr_dyn(uptr<U, A> &&ptr) {
-    uptr<T, A> p;
-    p.m_ = reinterpret_cast<T *>(ptr.m_);
-    p.m_delete_fn = ptr.m_delete_fn;
-    ptr.m_ = nullptr;
-    ptr.m_delete_fn = nullptr;
-    return p;
-}
 //////
-/*
-template <typename T> class sptr_ctx {
+
+template <typename T, typename A>
+    requires allocators::is_allocator<A>
+class sptr;
+
+template <typename A>
+    requires allocators::is_allocator<A>
+class sptr_ctx {
   public:
+    sptr_ctx() = default;
+    ~sptr_ctx() { destroy(); }
+
+    sptr_ctx(const sptr_ctx &other) = delete;
+    sptr_ctx &operator=(const sptr_ctx &other) = delete;
+    sptr_ctx(sptr_ctx &&other) = delete;
+    sptr_ctx &operator=(sptr_ctx &&other) = delete;
+
+  public:
+    void *get() { return m_; }
+
+    void increment_ref() { m_ref_count++; }
     void decrement_ref() {
         m_ref_count--;
         if (m_ref_count <= 0) {
-            ~sptr_ctx();
+            destroy();
+        }
+    }
+    void destroy() {
+        if (m_) {
+            m_delete_fn(m_);
+            m_ = nullptr;
+            m_delete_fn = nullptr;
         }
     }
 
   public:
-    // this should store allocator here
-    T *m_ptr = nullptr;
+    template <typename _T, typename _A, typename... _Args>
+        requires allocators::is_allocator<_A>
+    friend sptr<_T, _A> sptr_make(_Args &&...args);
+
+  private:
+    void *m_ = nullptr;
+    void (*m_delete_fn)(void *) = nullptr;
     size_t m_ref_count = 0;
 };
 
-template <typename T> class sptr {
+template <typename T, typename A>
+    requires allocators::is_allocator<A>
+class sptr {
   public:
-    sptr() {
-        m_ctx = reinterpret_cast<sptr_ctx<T>
-*>(allocator.alloc(sizeof(sptr_ctx<T>)));
+    sptr() = default;
+    ~sptr() { destroy(); }
+
+    sptr(const sptr &other) : m_ctx(other.m_ctx) { m_ctx->increment_ref(); }
+    sptr &operator=(const sptr &other) {
+        destroy();
+        using std::swap;
+        swap(*this, other);
+        return *this;
     }
-    ~sptr() {
+
+    sptr(sptr &&other) : m_ctx(std::move(other.m_ctx)) { other.m_ctx = nullptr; }
+    sptr operator=(sptr &&other) {
+        destroy();
+        using std::swap;
+        swap(*this, other);
+        return *this;
+    }
+
+    template <typename U>
+        requires std::is_base_of_v<T, U>
+    sptr(const sptr<U, A> &other) : m_ctx(other.m_ctx) {
+        m_ctx->increment_ref();
+    }
+
+    template <typename U>
+        requires std::is_base_of_v<T, U>
+    sptr &operator=(const sptr<U, A> &other) {
+        destroy();
+        m_ctx = other.m_ctx;
+        m_ctx->increment_ref();
+        return *this;
+    }
+
+    template <typename U>
+        requires std::is_base_of_v<T, U>
+    sptr(sptr &&other) : m_ctx(other.m_ctx) {
+        other.m_ctx = nullptr;
+    }
+
+    template <typename U>
+        requires std::is_base_of_v<T, U>
+    sptr &operator=(sptr &&other) {
+        destroy();
+        m_ctx = other.m_ctx;
+        other.m_ctx = nullptr;
+    }
+
+  public:
+    T *operator->() { return static_cast<T *>(m_ctx->get()); }
+
+    void destroy() {
         if (m_ctx) {
-            m_ctx->m_ref_count--;
+            m_ctx->decrement_ref();
+            m_ctx = nullptr;
         }
     }
 
-    sptr(const sptr &other) : m_ctx(other.m_ctx) { m_ctx->m_ref_count++; }
-    sptr &operator=(const sptr &other) {
-        sptr temp(other);
-        swap(temp);
-        return *this;
-    }
+  public:
+    friend void swap(sptr &a, sptr &b) { std::swap(a.m_ctx, b.m_ctx); }
 
-    sptr(sptr &&other) : m_ctx(std::move(other.m_ctx)) {}
-    sptr operator=(sptr &&other) {
-        sptr temp(other);
-        swap(temp);
-        return *this;
-    }
+    template <typename _T, typename _A, typename... _Args>
+        requires allocators::is_allocator<_A>
+    friend sptr<_T, _A> sptr_make(_Args &&...args);
+
+    template <typename _T, typename _A>
+        requires allocators::is_allocator<_A>
+    friend sptr<_T, _A> sptr_take(_T *ptr);
 
   public:
-    void swap(sptr_ctx<T> &other) { std::swap(m_ctx, other.m_ctx); }
-
-  public:
-    sptr_ctx<T> *m_ctx;
+    sptr_ctx<A> *m_ctx;
 };
 
-template <typename T, typename U, typename... Args>
-    requires std::is_base_of_v<T, U>
-sptr<T, A> make_sptr_dyn(allocators::allocator &allocator, Args &&...args) {
+template <typename T, typename A, typename... Args>
+    requires allocators::is_allocator<A>
+sptr<T, A> sptr_make(Args &&...args) {
     sptr<T, A> ptr;
-
-    void *temp = allocator.alloc(sizeof(U));
-    U *temp2 = new (temp) U(std::forward(args)...);
-    ptr.m_ctx.m_ptr = reinterpret_cast<T *>(temp2);
-    ptr.m_ctx.m_ref_count = 1;
+    sptr_ctx<A> *ctx = allocators::alloc_type<A, sptr_ctx<A>>();
+    ctx->m_ = allocators::alloc_type<A, T>(std::forward<Args>(args)...);
+    ctx->m_delete_fn = [](void *ptr) { allocators::dealloc_type<A>(static_cast<T *>(ptr)); };
+    ctx->m_ref_count = 1;
+    ptr.m_ctx = ctx;
     return ptr;
 }
-*/
+
+template <typename T, typename A>
+    requires allocators::is_allocator<A>
+sptr<T, A> sptr_take(T *ptr) {
+    sptr<T, A> p;
+    sptr_ctx<A> *ctx = allocators::alloc_type<A, sptr_ctx<A>>();
+    ctx->m_ = ptr;
+    ctx->m_delete_fn = [](void *ptr) { allocators::dealloc_type<A>(static_cast<T *>(ptr)->~T()); };
+    ctx->m_ref_count = 1;
+    p.m_ctx = ctx;
+    return p;
+}
+
 } // namespace core
 } // namespace roco
