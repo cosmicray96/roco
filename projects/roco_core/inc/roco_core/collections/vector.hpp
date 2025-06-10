@@ -14,13 +14,14 @@
 namespace roco {
 namespace core {
 namespace collections {
-
+/*
 template <typename t_elem>
     requires is_collection_elem<t_elem>
 class vec {
   public:
-    vec(allocators::allocator &allocator) : m_capacity(10), m_count(0), m_allocator(allocator) {
-        m_data = (t_elem *)(allocator.alloc(m_capacity * sizeof(t_elem)));
+    vec(allocators::allocator &allocator) : m_capacity(10), m_count(0),
+m_allocator(allocator) { m_data = (t_elem *)(allocator.alloc(m_capacity *
+sizeof(t_elem)));
     }
     ~vec() {
         if (m_data) {
@@ -32,7 +33,8 @@ class vec {
     vec(const vec &other) = default;
     vec &operator=(const vec &other) = default;
 
-    vec(vec &&other) : m_data(other.m_data), m_capacity(other.m_capacity), m_count(other.m_count) {}
+    vec(vec &&other) : m_data(other.m_data), m_capacity(other.m_capacity),
+m_count(other.m_count) {}
 
   private:
     void swap(vec &other) {
@@ -63,7 +65,7 @@ template <typename t_elem>
 vec_it<t_elem> to_vec_it_end(vec<t_elem> &ve) {
     return vec_it<t_elem>(ve.m_data + ve.m_count);
 }
-
+*/
 ////////////
 
 //////////

@@ -128,9 +128,10 @@ public:
 public:
   template <typename A>
     requires allocators::is_allocator<A>
-  uptr<iterator<t_elem>, A> to_iterator() {
-    return make_uptr_dyn<iterator<t_elem>, array_it<t_elem>, A>(
-        array_it(*this));
+  roco::core::result<roco::core::uptr<iterator<t_elem>, A>,
+                     roco::core::error_enum>
+  to_iterator() {
+    return {uptr_make<array_it<t_elem>, A>(array_it(*this))};
   }
 
 private:
