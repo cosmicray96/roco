@@ -1,17 +1,19 @@
-
-
 #include "roco_core/allocators/heap.hpp"
 #include "roco_core/collections/array.hpp"
 #include "roco_core/smart_ptr.hpp"
 #include <cassert>
 #include <cstdint>
 
-using namespace roco::core::collections;
-using namespace roco::core;
 int main() {
     using namespace roco::core::allocators;
+    using namespace roco::core::collections;
+    using namespace roco::core;
 
-    array<int, 10, heap> arr;
+    auto res = array_make<int32_t, 10, heap>();
+    if (res.has_error()) {
+        return 1;
+    }
+    array<int32_t, 10, heap> arr = res.take_value();
 
     std::cout << "arr at 0: " << arr << std::endl;
 
@@ -25,7 +27,11 @@ int main() {
     std::cout << "count: " << arr.count() << std::endl;
     assert(arr.count() == 3);
 
-    array<int32_t, 10, heap> arr1;
+    auto res1 = array_make<int32_t, 10, heap>();
+    if (res1.has_error()) {
+        return 1;
+    }
+    array<int32_t, 10, heap> arr1 = res1.take_value();
     for (size_t i = 0; i < 5; i++) {
         arr1[i] = i * 10;
     }
@@ -36,10 +42,17 @@ int main() {
         assert(it1.get() == i * 10);
     }
 
-    uptr<iterator<int32_t>, heap> it3 = arr1.to_array_it_beg().to_iterator<heap>();
+    auto it3_res = arr1.to_array_it_beg().to_iterator<heap>();
+    if (it3_res.has_error()) {
+        return 1;
+    }
+    uptr<iterator<int32_t>, heap> it3 = it3_res.take_value();
 
-    uptr<iterator<int32_t>, heap> it4 =
-        make_uptr_dyn<iterator<int32_t>, array_it<int32_t>, heap>(arr1.to_array_it_end());
+    auto it4_res = arr1.to_array_it_end().to_iterator<heap>();
+    if (it4_res.has_error()) {
+        return 1;
+    }
+    uptr<iterator<int32_t>, heap> it4 = it4_res.take_value();
 
     for (size_t i = 0; !it3->equals(*it4.get()); it3->inc(), i++) {
         assert(it3->get() == i * 10);
@@ -47,7 +60,11 @@ int main() {
 
     ///////
 
-    array<int32_t, 10, heap> arr4;
+    auto res4 = array_make<int32_t, 10, heap>();
+    if (res4.has_error()) {
+        return 1;
+    }
+    array<int32_t, 10, heap> arr4 = res4.take_value();
     for (size_t i = 0; i < 10; i++) {
         arr4[i] = i * 10;
     }
@@ -63,14 +80,22 @@ int main() {
 
     ///////////
 
-    array<int32_t, 10, heap> arr3;
+    auto res3 = array_make<int32_t, 10, heap>();
+    if (res3.has_error()) {
+        return 1;
+    }
+    array<int32_t, 10, heap> arr3 = res3.take_value();
     for (size_t i = 0; i < 10; i++) {
         arr3[i] = i * 10;
     }
 
     //////
 
-    array<int32_t, 10, heap> arr5;
+    auto res5 = array_make<int32_t, 10, heap>();
+    if (res5.has_error()) {
+        return 1;
+    }
+    array<int32_t, 10, heap> arr5 = res5.take_value();
     for (size_t i = 0; i < 10; i++) {
         arr5[i] = i * 10;
     }
@@ -81,7 +106,11 @@ int main() {
         assert(arr7[i] == i * 10);
     }
 
-    array<int32_t, 10, heap> arr9 = array<int32_t, 10, heap>();
+    auto res9 = array_make<int32_t, 10, heap>();
+    if (res9.has_error()) {
+        return 1;
+    }
+    array<int32_t, 10, heap> arr9 = res9.take_value();
     assert(arr9.capacity() == 10);
 
     return 0;

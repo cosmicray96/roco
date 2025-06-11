@@ -18,6 +18,19 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${exe_directory})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${exe_directory}) 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${junk_directory}) 
 
+
+# Global exception-free setup 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+		add_compile_options(-Werror=exceptions) 
+ 		add_compile_options(-fno-exceptions)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		add_compile_options(-Werror=exceptions)
+    add_compile_options(-fno-exceptions)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_compile_options(/EHs-c-)
+    add_compile_definitions(_HAS_EXCEPTIONS=0)
+endif()
+
 #set(build_configs Debug Release RelWithDebInfo MinSizeRel)
 #foreach(build_config IN LISTS build_configs)
 #	string(TOUPPER ${build_config} config_u)
