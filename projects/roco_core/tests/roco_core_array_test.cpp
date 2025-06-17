@@ -4,12 +4,16 @@
 #include <cassert>
 #include <cstdint>
 
+#include <concepts>
+#include <type_traits>
+#include <utility>
+
 int main() {
     using namespace roco::core::allocators;
     using namespace roco::core::collections;
     using namespace roco::core;
 
-    auto res = array_make<int32_t, 10, heap>();
+    auto res = array<int32_t, 10, heap>::make();
     if (res.has_error()) {
         return 1;
     }
@@ -27,7 +31,7 @@ int main() {
     std::cout << "count: " << arr.count() << std::endl;
     assert(arr.count() == 3);
 
-    auto res1 = array_make<int32_t, 10, heap>();
+    auto res1 = array<int32_t, 10, heap>::make();
     if (res1.has_error()) {
         return 1;
     }

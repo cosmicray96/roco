@@ -9,7 +9,7 @@ namespace allocators {
 
 roco::core::result<void *, roco::core::error_enum> heap::alloc(size_t size,
                                                                size_t align) {
-  using namespace roco_core;
+  using namespace roco::core;
   void *ptr = aligned_alloc(align, aligned_size(size, align));
   if (!ptr) {
     return {roco::core::error_enum::alloc_bad_alloc};

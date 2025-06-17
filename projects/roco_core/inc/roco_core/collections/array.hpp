@@ -18,9 +18,7 @@ namespace collections {
 
 template <typename t_elem> class array_it;
 
-template <typename T, size_t N, typename A>
-    requires is_collection_elem<T> && allocators::is_allocator<A>
-class array {
+template <typename T, size_t N, typename A> class array {
   private:
     array() = default;
 
@@ -30,17 +28,10 @@ class array {
     array(const array &other) = default;
     array &operator=(const array &other) = default;
 
-    array(array &&other) noexcept {
+    array(array &&other) { swap(*this, other); }
+    array &operator=(array &&other) {
         destroy();
-        m_data = std::move(other.m_data);
-        m_count = std::move(other.m_count);
-        other.m_data = nullptr;
-        other.m_count = 0;
-    }
-
-    array &operator=(array &&other) noexcept {
-        array new_array(std::move(other));
-        swap(new_array);
+        swap(*this, other);
         return *this;
     }
 
@@ -54,13 +45,8 @@ class array {
     const T &operator[](size_t index) const { return m_data[index]; }
 
   public:
-    size_t count() const noexcept { return m_count; }
-    size_t capacity() const noexcept { return N; }
-
-    void swap(array &other) noexcept {
-        std::swap(m_data, other.m_data);
-        std::swap(m_count, other.m_count);
-    }
+    size_t count() const { return m_count; }
+    size_t capacity() const { return N; }
 
     void destroy() {
         if (m_data) {
@@ -74,8 +60,13 @@ class array {
     array_it<T> to_array_it_end() { return array_it<T>(m_data + m_count); }
 
   public:
+    friend void swap(array &a, array &b) noexcept {
+        std::swap(a.m_data, b.m_data);
+        std::swap(a.m_count, b.m_count);
+    }
+
     friend std::ostream &operator<<(std::ostream &os, const array &arr)
-        requires roco_core::is_printable<T>
+        requires roco::core::is_printable<T>
     {
         if (arr.m_count == 0) {
             os << "[ ]";
@@ -94,7 +85,8 @@ class array {
     }
 
   public:
-    static roco::core::result<array<T, N, A>, roco::core::error_enum> make();
+    static roco::core::result<array, roco::core::error_enum> make()
+        requires is_collection_elem<T> && allocators::is_allocator<A>;
 
   private:
     T *m_data = nullptr;
@@ -102,8 +94,9 @@ class array {
 };
 
 template <typename T, size_t N, typename A>
+roco::core::result<array<T, N, A>, roco::core::error_enum> array<T, N, A>::make()
     requires is_collection_elem<T> && allocators::is_allocator<A>
-roco::core::result<array<T, N, A>, roco::core::error_enum> array<T, N, A>::make() {
+{
     array<T, N, A> arr;
     roco::core::result<T *, roco::core::error_enum> res = allocators::alloc_type_array<A, T>(N);
 

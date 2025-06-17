@@ -3,8 +3,8 @@
 
 int main() {
 
-    assert(1 == 1);
-    assert(roco_core::roco_core::add(1, 2) == 3);
+  assert(1 == 1);
+  assert(roco::core::roco_core::add(1, 2) == 3);
 
-    return 0;
+  return 0;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "roco_core/allocators/allocator.hpp"
+#include "roco_core/error.hpp"
 #include "roco_core/error_enum.hpp"
 #include <concepts>
 #include <type_traits>

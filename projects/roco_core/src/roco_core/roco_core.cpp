@@ -1,6 +1,7 @@
 #include "roco_core/roco_core.hpp"
 
-namespace roco_core {
+namespace roco {
+namespace core {
 
 void crash_program(const char *msg) {
     if (msg) {
@@ -10,4 +11,5 @@ void crash_program(const char *msg) {
 }
 
 int roco_core::add(int a, int b) { return a + b; }
-} // namespace roco_core
+} // namespace core
+} // namespace roco
