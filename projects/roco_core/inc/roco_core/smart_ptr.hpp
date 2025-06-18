@@ -27,6 +27,9 @@ template <typename T, typename A> class uptr {
     }
 
     uptr &operator=(uptr &&other) {
+        if (m_ == other.m_) {
+            return *this;
+        }
         destroy();
         swap(*this, other);
         return *this;
@@ -53,6 +56,7 @@ template <typename T, typename A> class uptr {
 
   public:
     T *operator->() { return m_; }
+    T &operator*() { return *m_; }
     T *get() { return m_; }
 
     T *release() {
@@ -163,6 +167,9 @@ template <typename T, typename A> class sptr {
 
     sptr(const sptr &other) : m_ctx(other.m_ctx) { m_ctx->increment_ref(); }
     sptr &operator=(const sptr &other) {
+        if (m_ctx == other.m_ctx) {
+            return *this;
+        }
         destroy();
         using std::swap;
         swap(*this, other);
