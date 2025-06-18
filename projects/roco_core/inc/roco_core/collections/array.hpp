@@ -1,6 +1,7 @@
 #pragma once
 
 #include "roco_core/allocators/allocator.hpp"
+#include "roco_core/allocators/heap.hpp"
 #include "roco_core/collections/collection.hpp"
 #include "roco_core/collections/iterator.hpp"
 #include "roco_core/error_enum.hpp"
@@ -19,6 +20,10 @@ namespace collections {
 template <typename t_elem> class array_it;
 
 template <typename T, size_t N, typename A> class array {
+  public:
+    static_assert(is_collection_elem<T>, " T is not a collection element");
+    static_assert(allocators::is_allocator<A>, "A is not an allocator");
+
   private:
     array() = default;
 
@@ -85,27 +90,22 @@ template <typename T, size_t N, typename A> class array {
     }
 
   public:
-    static roco::core::result<array, roco::core::error_enum> make()
-        requires is_collection_elem<T> && allocators::is_allocator<A>;
+    static roco::core::result<array, roco::core::error_enum> make() {
+        array<T, N, A> arr;
+        roco::core::result<T *, roco::core::error_enum> res = allocators::alloc_type_array<A, T>(N);
+
+        if (res.has_error()) {
+            return {res.take_error()};
+        }
+        arr.m_data = res.take_value();
+        return {arr};
+    }
 
   private:
     T *m_data = nullptr;
     size_t m_count = 0;
 };
 
-template <typename T, size_t N, typename A>
-roco::core::result<array<T, N, A>, roco::core::error_enum> array<T, N, A>::make()
-    requires is_collection_elem<T> && allocators::is_allocator<A>
-{
-    array<T, N, A> arr;
-    roco::core::result<T *, roco::core::error_enum> res = allocators::alloc_type_array<A, T>(N);
-
-    if (res.has_error()) {
-        return {res.take_error()};
-    }
-    arr.m_data = res.take_value();
-    return {arr};
-}
 ///////
 
 template <typename t_elem> class array_it : public iterator<t_elem> {
@@ -138,7 +138,12 @@ template <typename t_elem> class array_it : public iterator<t_elem> {
         requires allocators::is_allocator<A>
     roco::core::result<roco::core::uptr<iterator<t_elem>, A>, roco::core::error_enum>
     to_iterator() {
-        return {uptr_make<array_it<t_elem>, A>(array_it(*this))};
+
+        auto res = uptr<array_it<t_elem>, A>::make(array_it(*this));
+        if (res.has_error()) {
+            return {res.take_error()};
+        }
+        return {res.take_value()};
     }
 
   private:
