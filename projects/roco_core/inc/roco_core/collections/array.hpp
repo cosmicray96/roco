@@ -30,11 +30,14 @@ template <typename T, size_t N, typename A> class array {
   public:
     ~array() { destroy(); }
 
-    array(const array &other) = default;
-    array &operator=(const array &other) = default;
+    array(const array &other) = delete;
+    array &operator=(const array &other) = delete;
 
     array(array &&other) { swap(*this, other); }
     array &operator=(array &&other) {
+        if (m_data == other.m_data) {
+            return *this;
+        }
         destroy();
         swap(*this, other);
         return *this;
@@ -98,7 +101,7 @@ template <typename T, size_t N, typename A> class array {
             return {res.take_error()};
         }
         arr.m_data = res.take_value();
-        return {arr};
+        return {std::move(arr)};
     }
 
   private:
@@ -143,7 +146,7 @@ template <typename t_elem> class array_it : public iterator<t_elem> {
         if (res.has_error()) {
             return {res.take_error()};
         }
-        return {res.take_value()};
+        return {std::move(res.take_value())};
     }
 
   private:

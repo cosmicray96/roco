@@ -42,7 +42,7 @@ result<T *, roco::core::error_enum> alloc_type(Args &&...args) {
     if (!output) {
         return {roco::core::error_enum::alloc_bad_alloc};
     }
-    return {output};
+    return {std::move(output)};
 }
 
 template <typename A, typename T>
@@ -72,7 +72,7 @@ result<T *, roco::core::error_enum> alloc_type_array(size_t count, Args &&...arg
         T *temp = reinterpret_cast<T *>(ptr + (i * sizeof(T)));
         std::construct_at(temp, std::forward<Args>(args)...);
     }
-    return {reinterpret_cast<T *>(ptr)};
+    return {std::move(reinterpret_cast<T *>(ptr))};
 }
 
 template <typename A, typename T>

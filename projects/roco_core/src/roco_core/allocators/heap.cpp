@@ -22,7 +22,7 @@ roco::core::result<void *, roco::core::error_enum> heap::alloc(size_t size, size
     if (!ptr) {
         return {error_enum::alloc_bad_alloc};
     }
-    return {ptr};
+    return {std::move(ptr)};
 }
 roco::core::result<void *, roco::core::error_enum> heap::alloc8(size_t size) {
     return alloc(size, 8);
