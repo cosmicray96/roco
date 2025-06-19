@@ -205,5 +205,18 @@ int main() {
         assert(p.get() != nullptr);
         assert(*p == 10);
     }
+    { // moved-out-of object deleted, moved-in-obj is alive
+
+        auto res = uptr<int32_t, heap>::make(10);
+        assert(!res.has_error());
+        uptr<int32_t, heap> p = res.take_value();
+        {
+            auto res1 = uptr<int32_t, heap>::make(20);
+            assert(!res1.has_error());
+            uptr<int32_t, heap> p1 = res1.take_value();
+            p = std::move(p1);
+        }
+        assert(*p == 20);
+    }
     return 0;
 }
