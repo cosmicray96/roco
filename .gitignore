@@ -3,4 +3,6 @@
 _builds/
 _outputs/
 
+Testing/
+
 compile_commands.json
