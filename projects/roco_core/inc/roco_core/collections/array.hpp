@@ -20,137 +20,132 @@ namespace collections {
 template <typename t_elem> class array_it;
 
 template <typename T, size_t N, typename A> class array {
-  public:
-    static_assert(is_collection_elem<T>, " T is not a collection element");
-    static_assert(allocators::is_allocator<A>, "A is not an allocator");
+public:
+  static_assert(allocators::is_allocator<A>, "A is not an allocator");
 
-  private:
-    array() = default;
+private:
+  array() = default;
 
-  public:
-    ~array() { destroy(); }
+public:
+  ~array() { destroy(); }
 
-    array(const array &other) = delete;
-    array &operator=(const array &other) = delete;
+  array(const array &other) = delete;
+  array &operator=(const array &other) = delete;
 
-    array(array &&other) { swap(*this, other); }
-    array &operator=(array &&other) {
-        if (m_data == other.m_data) {
-            return *this;
-        }
-        destroy();
-        swap(*this, other);
-        return *this;
+  array(array &&other) { swap(*this, other); }
+  array &operator=(array &&other) {
+    if (m_data == other.m_data) {
+      return *this;
     }
+    destroy();
+    swap(*this, other);
+    return *this;
+  }
 
-  public:
-    T &operator[](size_t index) {
-        if (index + 1 > m_count) {
-            m_count = index + 1;
-        }
-        return m_data[index];
+public:
+  T &operator[](size_t index) { return m_data[index]; }
+  const T &operator[](size_t index) const { return m_data[index]; }
+
+public:
+  size_t capacity() const { return N; }
+
+  void destroy() {
+    if (m_data) {
+      allocators::delloc_type_array<A, T>(m_data, N);
+      m_data = nullptr;
     }
-    const T &operator[](size_t index) const { return m_data[index]; }
+  }
 
-  public:
-    size_t count() const { return m_count; }
-    size_t capacity() const { return N; }
+public:
+  array_it<T> to_array_it_beg() { return array_it<T>(m_data); }
+  array_it<T> to_array_it_end() { return array_it<T>(m_data + N); }
 
-    void destroy() {
-        if (m_data) {
-            allocators::delloc_type_array<A, T>(m_data, N);
-            m_data = nullptr;
-        }
+public:
+  friend void swap(array &a, array &b) { std::swap(a.m_data, b.m_data); }
+
+  friend std::ostream &operator<<(std::ostream &os, const array &arr)
+    requires roco::core::is_printable<T>
+  {
+    if (N == 0) {
+      os << "[ ]";
+      return os;
     }
-
-  public:
-    array_it<T> to_array_it_beg() { return array_it<T>(m_data); }
-    array_it<T> to_array_it_end() { return array_it<T>(m_data + m_count); }
-
-  public:
-    friend void swap(array &a, array &b) noexcept {
-        std::swap(a.m_data, b.m_data);
-        std::swap(a.m_count, b.m_count);
+    if (N == 1) {
+      os << "[ " << arr.m_data[0] << " ]";
+      return os;
     }
-
-    friend std::ostream &operator<<(std::ostream &os, const array &arr)
-        requires roco::core::is_printable<T>
-    {
-        if (arr.m_count == 0) {
-            os << "[ ]";
-            return os;
-        }
-        if (arr.m_count == 1) {
-            os << "[ " << arr.m_data[0] << " ]";
-            return os;
-        }
-        os << "[ ";
-        for (size_t i = 0; i < arr.m_count - 1; i++) {
-            os << arr.m_data[i] << ", ";
-        }
-        os << arr.m_data[arr.m_count - 1] << " ]";
-        return os;
+    os << "[ ";
+    for (size_t i = 0; i < N - 1; i++) {
+      os << arr.m_data[i] << ", ";
     }
+    os << arr.m_data[N - 1] << " ]";
+    return os;
+  }
 
-  public:
-    static roco::core::result<array, roco::core::error_enum> make() {
-        array<T, N, A> arr;
-        roco::core::result<T *, roco::core::error_enum> res = allocators::alloc_type_array<A, T>(N);
+public:
+  template <typename... Args>
+  static roco::core::result<array, roco::core::error_enum> make(Args &&...args)
+    requires is_movable<T> &&
+             (std::is_default_constructible_v<T> || sizeof...(Args) > 0)
+  {
+    array<T, N, A> arr;
+    roco::core::result<T *, roco::core::error_enum> res =
+        allocators::alloc_type_array<A, T>(N, std::forward<Args>(args)...);
 
-        if (res.has_error()) {
-            return {res.take_error()};
-        }
-        arr.m_data = res.take_value();
-        return {std::move(arr)};
+    if (res.has_error()) {
+      return {res.take_error()};
     }
+    arr.m_data = res.take_value();
+    return {std::move(arr)};
+  }
 
-  private:
-    T *m_data = nullptr;
-    size_t m_count = 0;
+private:
+  T *m_data = nullptr;
 };
 
 ///////
 
 template <typename t_elem> class array_it : public iterator<t_elem> {
-  public:
-    array_it(t_elem *ptr) : m_ptr(ptr) {}
-    virtual ~array_it() = default;
-    array_it(const array_it &other) = default;
-    array_it &operator=(const array_it &other) = default;
-    array_it(array_it &&other) : m_ptr(other.m_ptr) { other.m_ptr = nullptr; }
-    array_it &operator=(array_it &&other) {
-        array_it temp(std::move(other));
-        swap(temp);
-        return *this;
+public:
+  array_it(t_elem *ptr) : m_ptr(ptr) {}
+  virtual ~array_it() = default;
+  array_it(const array_it &other) = default;
+  array_it &operator=(const array_it &other) = default;
+  array_it(array_it &&other) : m_ptr(other.m_ptr) { other.m_ptr = nullptr; }
+  array_it &operator=(array_it &&other) {
+    array_it temp(std::move(other));
+    swap(temp);
+    return *this;
+  }
+
+public:
+  virtual t_elem &operator*() override { return *m_ptr; }
+  virtual void inc() override { m_ptr++; }
+  virtual bool equals(const iterator<t_elem> &other) override {
+    const array_it *other_array_it = reinterpret_cast<const array_it *>(&other);
+    return m_ptr == other_array_it->m_ptr;
+  }
+  virtual t_elem &get() override { return *m_ptr; }
+
+public:
+  void swap(array_it &other) { std::swap(m_ptr, other.m_ptr); }
+
+public:
+  template <typename A>
+    requires allocators::is_allocator<A>
+  roco::core::result<roco::core::uptr<iterator<t_elem>, A>,
+                     roco::core::error_enum>
+  to_iterator() {
+
+    auto res = uptr<array_it<t_elem>, A>::make(array_it(*this));
+    if (res.has_error()) {
+      return {res.take_error()};
     }
+    return {std::move(res.take_value())};
+  }
 
-  public:
-    virtual t_elem &operator*() override { return *m_ptr; }
-    virtual void inc() override { m_ptr++; }
-    virtual bool equals(const iterator<t_elem> &other) override {
-        const array_it *other_array_it = reinterpret_cast<const array_it *>(&other);
-        return m_ptr == other_array_it->m_ptr;
-    }
-    virtual t_elem &get() override { return *m_ptr; }
-
-  public:
-    void swap(array_it &other) { std::swap(m_ptr, other.m_ptr); }
-
-  public:
-    template <typename A>
-        requires allocators::is_allocator<A>
-    roco::core::result<roco::core::uptr<iterator<t_elem>, A>, roco::core::error_enum>
-    to_iterator() {
-
-        auto res = uptr<array_it<t_elem>, A>::make(array_it(*this));
-        if (res.has_error()) {
-            return {res.take_error()};
-        }
-        return {std::move(res.take_value())};
-    }
-
-  private:
-    t_elem *m_ptr;
+private:
+  t_elem *m_ptr;
 };
 
 ///////////
