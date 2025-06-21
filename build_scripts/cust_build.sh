@@ -28,11 +28,12 @@ collect_tests() {
 	local test_paths=()
 	for project in "${existing_projects[@]}"; do
 		mapfile -t test_paths < <(find "./projects/$project/test/" -mindepth 1 -maxdepth 1 -type f -name "*.cpp")
-	done
-	for test_path in "${test_paths[@]}"; do
-		local test_path_ext="$(basename "$test_path")"
-		local test_name="${test_path_ext%.*}"
-		existing_tests+=("$test_name")
+
+		for test_path in "${test_paths[@]}"; do
+			local test_path_ext="$(basename "$test_path")"
+			local test_name="${test_path_ext%.*}"
+			existing_tests+=("$project/$test_name")
+		done
 	done
 }
 
@@ -63,6 +64,8 @@ config="none"
 target="none"
 is_build="false"
 
+previous_project="none"
+
 for arg in "$@"; do
 	case "$arg" in
 		"--build")
@@ -87,10 +90,15 @@ for arg in "$@"; do
 
 			case "$mode" in
 				"project")
+					previous_project="$args"
 					projects+=("$args")
 					;;
 				"test")
-					tests+=("$args")
+					if [[ "$previous_project" == "none" ]]; then 
+						echo "tests must come after a project" >&2
+						exit 1
+					fi
+					tests+=("$previous_project/$args")
 					;;
 				"compiler")
 					compiler=("$args")
@@ -134,7 +142,7 @@ done
 
 for tes in "${tests[@]}"; do
 	if ! contains_element "$tes" "${existing_tests[@]}"; then
-		echo "invalid test: $test" >&2
+		echo "invalid test: $tes" >&2
 		exit 1
 	fi
 done
