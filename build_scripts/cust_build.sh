@@ -27,7 +27,7 @@ collect_projects() {
 collect_tests() {
 	local test_paths=()
 	for project in "${existing_projects[@]}"; do
-		mapfile -t test_paths < <(find "./projects/$project/test/" -mindepth 1 -maxdepth 1 -type f -name "*.cpp")
+		mapfile -t test_paths < <(find "./projects/$project/tests/" -mindepth 1 -maxdepth 1 -type f -name "*.cpp")
 
 		for test_path in "${test_paths[@]}"; do
 			local test_path_ext="$(basename "$test_path")"
