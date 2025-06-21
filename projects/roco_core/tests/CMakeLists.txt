@@ -8,7 +8,7 @@ set(tests
 )
 
 if(DEFINED passed_tests)
-	foreach(test IN LIST ${tests})
+	foreach(test ${tests})
 
 		list(FIND passed_tests "${project_name}/${test}" index)
 		if(NOT index STREQUAL "-1")

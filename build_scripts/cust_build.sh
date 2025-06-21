@@ -6,8 +6,8 @@ cd "$(dirname "$0")"
 cd ..
 
 valid_compilers=("g++" "clang" "msvc")
-valid_targets=("linus" "windows" "mac")
-valid_configs=("debug" "release" "relsym" "minrel")
+valid_targets=("linux" "windows" "mac")
+valid_configs=("Debug" "Release" "RelWithDebInfo" "MinSizedRel")
 existing_projects=()
 existing_tests=()
 
@@ -27,6 +27,9 @@ collect_projects() {
 collect_tests() {
 	local test_paths=()
 	for project in "${existing_projects[@]}"; do
+		if [[ ! -d "./projects/$project/tests/" ]]; then
+			continue
+		fi
 		mapfile -t test_paths < <(find "./projects/$project/tests/" -mindepth 1 -maxdepth 1 -type f -name "*.cpp")
 
 		for test_path in "${test_paths[@]}"; do
@@ -90,24 +93,24 @@ for arg in "$@"; do
 
 			case "$mode" in
 				"project")
-					previous_project="$args"
-					projects+=("$args")
+					previous_project="$arg"
+					projects+=("$arg")
 					;;
 				"test")
 					if [[ "$previous_project" == "none" ]]; then 
 						echo "tests must come after a project" >&2
 						exit 1
 					fi
-					tests+=("$previous_project/$args")
+					tests+=("$previous_project/$arg")
 					;;
 				"compiler")
-					compiler=("$args")
+					compiler="$arg"
 					;;
 				"config")
-					config=("$args")
+					config="$arg"
 					;;
 				"target")
-					target=("$args")
+					target="$arg"
 					;;
 				*)
 					echo "invalid mode: $mode" >&2
@@ -148,8 +151,8 @@ for tes in "${tests[@]}"; do
 done
 
 
-cmake_project_list=$(IFS=';'; echo "${existing_projects[*]}")
-cmake_test_list=$(IFS=';'; echo "${existing_tests[*]}")
+cmake_project_list=$(IFS=';'; echo "${projects[*]}")
+cmake_test_list=$(IFS=';'; echo "${tests[*]}")
 
 mkdir -p "./_builds/$config"
 cmake -S "./" -B "./_builds/$config/" -Dpassed_projects="$cmake_project_list" -Dpassed_tests="$cmake_test_list" -Dpassed_compiler="compiler" -Dpassed_config="$config" -Dpassed_target="$target" -DCMAKE_EXPORT_COMPILE_COMMANDS=1
