@@ -11,13 +11,14 @@
 #include <algorithm>
 #include <cstddef>
 #include <ostream>
+#include <type_traits>
 #include <utility>
 
 namespace roco {
 namespace core {
 namespace collections {
 
-template <typename t_elem> class array_it;
+template <typename t_elem, bool t_is_const> class array_it;
 
 template <typename T, size_t N, typename A> class array {
 public:
@@ -57,8 +58,16 @@ public:
   }
 
 public:
-  array_it<T> to_array_it_beg() { return array_it<T>(m_data); }
-  array_it<T> to_array_it_end() { return array_it<T>(m_data + N); }
+  array_it<T, false> to_array_it_beg() { return array_it<T, false>(m_data); }
+  array_it<T, false> to_array_it_end() {
+    return array_it<T, false>(m_data + N);
+  }
+  array_it<T, true> to_array_it_beg_const() const {
+    return array_it<T, true>(m_data);
+  }
+  array_it<T, true> to_array_it_end_const() const {
+    return array_it<T, true>(m_data + N);
+  }
 
 public:
   friend void swap(array &a, array &b) { std::swap(a.m_data, b.m_data); }
@@ -105,47 +114,38 @@ private:
 
 ///////
 
-template <typename t_elem> class array_it : public iterator<t_elem> {
+template <typename T, bool t_is_const> class array_it {
+public:
+  using t_elem = T;
+  using t_ptr = std::conditional_t<t_is_const, const t_elem *, t_elem *>;
+  using t_ref = std::conditional_t<t_is_const, const t_elem &, t_elem &>;
+
 public:
   array_it(t_elem *ptr) : m_ptr(ptr) {}
   virtual ~array_it() = default;
   array_it(const array_it &other) = default;
   array_it &operator=(const array_it &other) = default;
-  array_it(array_it &&other) : m_ptr(other.m_ptr) { other.m_ptr = nullptr; }
-  array_it &operator=(array_it &&other) {
-    array_it temp(std::move(other));
-    swap(temp);
-    return *this;
-  }
+  array_it(array_it &&other) = default;
+  array_it &operator=(array_it &&other) = default;
 
 public:
-  virtual t_elem &operator*() override { return *m_ptr; }
-  virtual void inc() override { m_ptr++; }
-  virtual bool equals(const iterator<t_elem> &other) override {
-    const array_it *other_array_it = reinterpret_cast<const array_it *>(&other);
-    return m_ptr == other_array_it->m_ptr;
-  }
-  virtual t_elem &get() override { return *m_ptr; }
+  void inc() { m_ptr++; }
+  void dec() { m_ptr--; }
+  void inc(size_t count) { m_ptr += count; }
+  void dec(size_t count) { m_ptr -= count; }
+  t_ref get() { return *m_ptr; }
+  t_ptr ptr() { return m_ptr; }
 
 public:
-  void swap(array_it &other) { std::swap(m_ptr, other.m_ptr); }
+  t_ref operator*() { return *m_ptr; }
+  t_ptr operator->() { return m_ptr; }
+  bool operator==(const array_it &other) const { return other.m_ptr == m_ptr; }
 
 public:
-  template <typename A>
-    requires allocators::is_allocator<A>
-  roco::core::result<roco::core::uptr<iterator<t_elem>, A>,
-                     roco::core::error_enum>
-  to_iterator() {
-
-    auto res = uptr<array_it<t_elem>, A>::make(array_it(*this));
-    if (res.has_error()) {
-      return {res.take_error()};
-    }
-    return {std::move(res.take_value())};
-  }
+  friend void swap(array_it &a, array_it &b) { std::swap(a.m_ptr, b.m_ptr); }
 
 private:
-  t_elem *m_ptr;
+  t_ptr m_ptr;
 };
 
 ///////////

@@ -14,7 +14,8 @@ public:
   ~atest() = default;
 
   atest(const atest &other) = delete;
-  atest &operator=(const atest &other) = delete;
+  atest &
+  operator=(const atest &other) = delete;
 
   atest(atest &&other) = default;
   atest &operator=(atest &&other) = default;
@@ -22,7 +23,8 @@ public:
 public:
   int32_t get() { return m_i; }
 
-  friend std::ostream &operator<<(std::ostream &os, atest &a) {
+  friend std::ostream &
+  operator<<(std::ostream &os, atest &a) {
     os << a.m_i;
     return os;
   }
@@ -38,24 +40,32 @@ int main() {
   using heap = roco::core::allocators::heap;
 
   { // array creation success, default ctor
-    auto res = array<int32_t, 10, heap>::make();
+    auto res =
+        array<int32_t, 10, heap>::make();
     assert(!res.has_error());
-    array<int32_t, 10, heap> arr = res.take_value();
+    array<int32_t, 10, heap> arr =
+        res.take_value();
     assert(arr.capacity() == 10);
   }
   { // ctor with value
-    auto res = array<int32_t, 10, heap>::make(21);
+    auto res =
+        array<int32_t, 10, heap>::make(21);
     assert(!res.has_error());
-    array<int32_t, 10, heap> arr = res.take_value();
-    for (size_t i = 0; i < arr.capacity(); i++) {
+    array<int32_t, 10, heap> arr =
+        res.take_value();
+    for (size_t i = 0; i < arr.capacity();
+         i++) {
       assert(arr[i] == 21);
     }
   }
   { // non default ctor
-    auto res = array<atest, 10, heap>::make(21);
+    auto res =
+        array<atest, 10, heap>::make(21);
     assert(!res.has_error());
-    array<atest, 10, heap> arr = res.take_value();
-    for (size_t i = 0; i < arr.capacity(); i++) {
+    array<atest, 10, heap> arr =
+        res.take_value();
+    for (size_t i = 0; i < arr.capacity();
+         i++) {
       assert(arr[i].get() == 21);
     }
   }
@@ -64,46 +74,64 @@ int main() {
     //    heap>::make();
   }
   { // moves assign
-    auto res = array<int32_t, 10, heap>::make(21);
+    auto res =
+        array<int32_t, 10, heap>::make(21);
     assert(!res.has_error());
-    array<int32_t, 10, heap> arr = res.take_value();
-    array<int32_t, 10, heap> arr1 = std::move(arr);
-    for (size_t i = 0; i < arr1.capacity(); i++) {
+    array<int32_t, 10, heap> arr =
+        res.take_value();
+    array<int32_t, 10, heap> arr1 =
+        std::move(arr);
+    for (size_t i = 0; i < arr1.capacity();
+         i++) {
       assert(arr1[i] == 21);
     }
   }
   { // move ctor
-    auto res = array<int32_t, 10, heap>::make(21);
+    auto res =
+        array<int32_t, 10, heap>::make(21);
     assert(!res.has_error());
-    array<int32_t, 10, heap> arr = res.take_value();
-    array<int32_t, 10, heap> arr1(std::move(arr));
-    for (size_t i = 0; i < arr1.capacity(); i++) {
+    array<int32_t, 10, heap> arr =
+        res.take_value();
+    array<int32_t, 10, heap> arr1(
+        std::move(arr));
+    for (size_t i = 0; i < arr1.capacity();
+         i++) {
       assert(arr1[i] == 21);
     }
   }
   { // move assign into existing
-    auto res = array<int32_t, 10, heap>::make(21);
+    auto res =
+        array<int32_t, 10, heap>::make(21);
     assert(!res.has_error());
-    array<int32_t, 10, heap> arr = res.take_value();
-    auto res1 = array<int32_t, 10, heap>::make(42);
+    array<int32_t, 10, heap> arr =
+        res.take_value();
+    auto res1 =
+        array<int32_t, 10, heap>::make(42);
     assert(!res1.has_error());
-    array<int32_t, 10, heap> arr1 = res1.take_value();
+    array<int32_t, 10, heap> arr1 =
+        res1.take_value();
     arr1 = std::move(arr);
-    for (size_t i = 0; i < arr1.capacity(); i++) {
+    for (size_t i = 0; i < arr1.capacity();
+         i++) {
       assert(arr1[i] == 21);
     }
   }
   { // moved into another then died
-    auto res = array<int32_t, 10, heap>::make(21);
+    auto res =
+        array<int32_t, 10, heap>::make(21);
     assert(!res.has_error());
-    array<int32_t, 10, heap> arr = res.take_value();
+    array<int32_t, 10, heap> arr =
+        res.take_value();
     {
-      auto res1 = array<int32_t, 10, heap>::make(42);
+      auto res1 =
+          array<int32_t, 10, heap>::make(42);
       assert(!res1.has_error());
-      array<int32_t, 10, heap> arr1 = res1.take_value();
+      array<int32_t, 10, heap> arr1 =
+          res1.take_value();
       arr = std::move(arr1);
     }
-    for (size_t i = 0; i < arr.capacity(); i++) {
+    for (size_t i = 0; i < arr.capacity();
+         i++) {
       assert(arr[i] == 42);
     }
   }
