@@ -5,8 +5,8 @@ set -e
 cd "$(dirname "$0")"
 cd ..
 
-valid_compilers=("g++" "clang" "msvc")
-valid_targets=("linux" "windows" "mac")
+valid_compilers=("g++" "clang++" "msvc")
+valid_targets=("Linux" "Windows" "Mac")
 valid_configs=("Debug" "Release" "RelWithDebInfo" "MinSizedRel")
 existing_projects=()
 existing_tests=()
@@ -15,9 +15,9 @@ mode="none"
 
 projects=()
 tests=()
-compiler="none"
-config="none"
-target="none"
+compiler="clang++"
+config="Debug"
+target="Linux"
 is_build="false"
 is_all_project="false"
 
