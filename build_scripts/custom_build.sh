@@ -100,7 +100,7 @@ for arg in "$@"; do
 					add_all_tests_for_project "$previous_project"
 					;;
 				*)
-					echo "--all has to come after -projects or -tests" >&2
+					echo "--all has to come after -project or -tests" >&2
 					exit 1
 					;;
 			esac
@@ -108,11 +108,14 @@ for arg in "$@"; do
 		"--build")
 			is_build="true"
 			;;
-		"-projects")
+		"-project")
 			mode="project"
 			;;
 		"-tests")
 			mode="test"
+			;;
+		"-tests-only")
+			mode="test-only"
 			;;
 		"-compiler")
 			mode="compiler"
@@ -136,6 +139,9 @@ for arg in "$@"; do
 						exit 1
 					fi
 					tests+=("$previous_project/$arg")
+					;;
+				"test-only")
+						tests+=($arg)
 					;;
 				"compiler")
 					compiler="$arg"
