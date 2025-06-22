@@ -7,7 +7,7 @@ cd ..
 
 valid_compilers=("g++" "clang++" "msvc")
 valid_targets=("Linux" "Windows" "Mac")
-valid_configs=("Debug" "Release" "RelWithDebInfo" "MinSizedRel")
+valid_configs=("Debug" "Release" "RelWithDebInfo" "MinSizeRel")
 existing_projects=()
 existing_tests=()
 
@@ -59,6 +59,7 @@ add_all_tests_for_project() {
 		echo "trying to add tests for invalid project: $project_name" >&2
 		exit 1
 	fi
+	local test_paths=()
 	mapfile -t test_paths < <(find "./projects/$project_name/tests/" -mindepth 1 -maxdepth 1 -type f -name "*.cpp")
 
 	for test_path in "${test_paths[@]}"; do
@@ -185,9 +186,11 @@ done
 
 cmake_project_list=()
 if [[ "$is_all_project" == "true" ]]; then
-	cmake_project_list=$(IFS=';'; echo "${existing_projects[*]}")
+cmake_project_list=$(IFS=';'; printf "%s;" "${existing_projects[@]}")
+cmake_project_list="${cmake_project_list%;}"  # remove trailing ;
 else
-	cmake_project_list=$(IFS=';'; echo "${projects[*]}")
+cmake_project_list=$(IFS=';'; printf "%s;" "${projects[@]}")
+cmake_project_list="${cmake_project_list%;}"  # remove trailing ;
 fi
 
 cmake_test_list=$(IFS=';'; echo "${tests[*]}")
