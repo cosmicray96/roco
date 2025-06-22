@@ -114,9 +114,6 @@ for arg in "$@"; do
 		"-tests")
 			mode="test"
 			;;
-		"-tests-only")
-			mode="test-only"
-			;;
 		"-compiler")
 			mode="compiler"
 			;;
@@ -139,9 +136,6 @@ for arg in "$@"; do
 						exit 1
 					fi
 					tests+=("$previous_project/$arg")
-					;;
-				"test-only")
-						tests+=($arg)
 					;;
 				"compiler")
 					compiler="$arg"
