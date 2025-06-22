@@ -1,6 +1,4 @@
-
-option(testing_build "make tests" OFF)
-if(testing_build)
+if(DEFINED passed_tests)
 	enable_testing()
 endif()
 

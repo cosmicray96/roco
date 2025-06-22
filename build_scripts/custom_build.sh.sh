@@ -11,6 +11,18 @@ valid_configs=("Debug" "Release" "RelWithDebInfo" "MinSizedRel")
 existing_projects=()
 existing_tests=()
 
+mode="none"
+
+projects=()
+tests=()
+compiler="none"
+config="none"
+target="none"
+is_build="false"
+is_all_project="false"
+
+previous_project="none"
+
 #########
 
 collect_projects() {
@@ -40,6 +52,23 @@ collect_tests() {
 	done
 }
 
+add_all_tests_for_project() {
+	local project_name="$1"
+
+	if [[ ! -d "./projects/$project_name/tests/" ]]; then
+		echo "trying to add tests for invalid project: $project_name" >&2
+		exit 1
+	fi
+	mapfile -t test_paths < <(find "./projects/$project_name/tests/" -mindepth 1 -maxdepth 1 -type f -name "*.cpp")
+
+	for test_path in "${test_paths[@]}"; do
+		local test_path_ext="$(basename "$test_path")"
+		local test_name="${test_path_ext%.*}"
+		tests+=("$project_name/$test_name")
+	done
+
+}
+
 contains_element() {
     local target="$1"
     shift
@@ -58,19 +87,23 @@ contains_element() {
 collect_projects
 collect_tests
 
-mode="none"
-
-projects=()
-tests=()
-compiler="none"
-config="none"
-target="none"
-is_build="false"
-
-previous_project="none"
 
 for arg in "$@"; do
 	case "$arg" in
+		"--all")
+			case "$mode" in
+				"project")
+					is_all_project="true"
+					;;
+				"test")
+					add_all_tests_for_project "$previous_project"
+					;;
+				*)
+					echo "--all has to come after -projects or -tests" >&2
+					exit 1
+					;;
+			esac
+			;;
 		"--build")
 			is_build="true"
 			;;
@@ -150,12 +183,23 @@ for tes in "${tests[@]}"; do
 	fi
 done
 
+cmake_project_list=()
+if [[ "$is_all_project" == "true" ]]; then
+	cmake_project_list=$(IFS=';'; echo "${existing_projects[*]}")
+else
+	cmake_project_list=$(IFS=';'; echo "${projects[*]}")
+fi
 
-cmake_project_list=$(IFS=';'; echo "${projects[*]}")
 cmake_test_list=$(IFS=';'; echo "${tests[*]}")
 
 mkdir -p "./_builds/$config"
-cmake -S "./" -B "./_builds/$config/" -Dpassed_projects="$cmake_project_list" -Dpassed_tests="$cmake_test_list" -Dpassed_compiler="compiler" -Dpassed_config="$config" -Dpassed_target="$target" -DCMAKE_EXPORT_COMPILE_COMMANDS=1
+cmake -S "./" -B "./_builds/$config/" \
+	-Dpassed_projects="$cmake_project_list" \
+	-Dpassed_tests="$cmake_test_list" \
+	-DCMAKE_CXX_COMPILER="$compiler" \
+	-DCMAKE_BUILD_TYPE="$config" \
+	-DCMAKE_SYSTEM_NAME="$target" \
+	-DCMAKE_EXPORT_COMPILE_COMMANDS=1
 
 if [[ "$is_build" == "true" ]]; then
 	cmake --build "./_builds/$config/"
