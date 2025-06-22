@@ -4,7 +4,6 @@ project(CoolProject
 		CXX
 )
 
-# Use C11 and strict warnings
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

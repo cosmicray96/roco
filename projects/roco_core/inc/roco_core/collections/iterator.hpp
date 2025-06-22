@@ -8,6 +8,7 @@ namespace collections {
 template <typename T>
 concept is_iterator = requires(T t1, T t2) {
   typename T::t_elem;
+  typename T::t_coll;
   typename T::t_ptr;
   typename T::t_ref;
 

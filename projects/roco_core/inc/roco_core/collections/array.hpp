@@ -18,11 +18,15 @@ namespace roco {
 namespace core {
 namespace collections {
 
-template <typename t_elem, bool t_is_const> class array_it;
+template <typename T, size_t N, typename A,
+          bool t_is_const>
+class array_it;
 
-template <typename T, size_t N, typename A> class array {
+template <typename T, size_t N, typename A>
+class array {
 public:
-  static_assert(allocators::is_allocator<A>, "A is not an allocator");
+  static_assert(allocators::is_allocator<A>,
+                "A is not an allocator");
 
 private:
   array() = default;
@@ -31,9 +35,12 @@ public:
   ~array() { destroy(); }
 
   array(const array &other) = delete;
-  array &operator=(const array &other) = delete;
+  array &
+  operator=(const array &other) = delete;
 
-  array(array &&other) { swap(*this, other); }
+  array(array &&other) {
+    swap(*this, other);
+  }
   array &operator=(array &&other) {
     if (m_data == other.m_data) {
       return *this;
@@ -44,35 +51,52 @@ public:
   }
 
 public:
-  T &operator[](size_t index) { return m_data[index]; }
-  const T &operator[](size_t index) const { return m_data[index]; }
+  T &operator[](size_t index) {
+    return m_data[index];
+  }
+  const T &operator[](size_t index) const {
+    return m_data[index];
+  }
 
 public:
   size_t capacity() const { return N; }
 
   void destroy() {
     if (m_data) {
-      allocators::delloc_type_array<A, T>(m_data, N);
+      allocators::delloc_type_array<A, T>(
+          m_data, N);
       m_data = nullptr;
     }
   }
 
 public:
-  array_it<T, false> to_array_it_beg() { return array_it<T, false>(m_data); }
-  array_it<T, false> to_array_it_end() {
-    return array_it<T, false>(m_data + N);
+  array_it<T, N, A, false>
+  to_array_it_beg() {
+    return array_it<T, N, A, false>(m_data);
   }
-  array_it<T, true> to_array_it_beg_const() const {
-    return array_it<T, true>(m_data);
+  array_it<T, N, A, false>
+  to_array_it_end() {
+    return array_it<T, N, A, false>(m_data +
+                                    N);
   }
-  array_it<T, true> to_array_it_end_const() const {
-    return array_it<T, true>(m_data + N);
+  array_it<T, N, A, true>
+  to_array_it_beg_const() const {
+    return array_it<T, N, A, true>(m_data);
+  }
+  array_it<T, N, A, true>
+  to_array_it_end_const() const {
+    return array_it<T, N, A, true>(m_data +
+                                   N);
   }
 
 public:
-  friend void swap(array &a, array &b) { std::swap(a.m_data, b.m_data); }
+  friend void swap(array &a, array &b) {
+    std::swap(a.m_data, b.m_data);
+  }
 
-  friend std::ostream &operator<<(std::ostream &os, const array &arr)
+  friend std::ostream &
+  operator<<(std::ostream &os,
+             const array &arr)
     requires roco::core::is_printable<T>
   {
     if (N == 0) {
@@ -93,13 +117,23 @@ public:
 
 public:
   template <typename... Args>
-  static roco::core::result<array, roco::core::error_enum> make(Args &&...args)
+  static roco::core::result<
+      array, roco::core::error_enum>
+  make(Args &&...args)
     requires is_movable<T> &&
-             (std::is_default_constructible_v<T> || sizeof...(Args) > 0)
+             (std::
+                  is_default_constructible_v<
+                      T> ||
+              sizeof...(Args) > 0)
   {
     array<T, N, A> arr;
-    roco::core::result<T *, roco::core::error_enum> res =
-        allocators::alloc_type_array<A, T>(N, std::forward<Args>(args)...);
+    roco::core::result<
+        T *, roco::core::error_enum>
+        res =
+            allocators::alloc_type_array<A,
+                                         T>(
+                N,
+                std::forward<Args>(args)...);
 
     if (res.has_error()) {
       return {res.take_error()};
@@ -114,19 +148,26 @@ private:
 
 ///////
 
-template <typename T, bool t_is_const> class array_it {
+template <typename T, size_t N, typename A,
+          bool t_is_const>
+class array_it {
 public:
+  using t_coll = array<T, N, A>;
   using t_elem = T;
-  using t_ptr = std::conditional_t<t_is_const, const t_elem *, t_elem *>;
-  using t_ref = std::conditional_t<t_is_const, const t_elem &, t_elem &>;
+  using t_ptr = std::conditional_t<
+      t_is_const, const t_elem *, t_elem *>;
+  using t_ref = std::conditional_t<
+      t_is_const, const t_elem &, t_elem &>;
 
 public:
   array_it(t_elem *ptr) : m_ptr(ptr) {}
   virtual ~array_it() = default;
   array_it(const array_it &other) = default;
-  array_it &operator=(const array_it &other) = default;
+  array_it &
+  operator=(const array_it &other) = default;
   array_it(array_it &&other) = default;
-  array_it &operator=(array_it &&other) = default;
+  array_it &
+  operator=(array_it &&other) = default;
 
 public:
   void inc() { m_ptr++; }
@@ -139,10 +180,16 @@ public:
 public:
   t_ref operator*() { return *m_ptr; }
   t_ptr operator->() { return m_ptr; }
-  bool operator==(const array_it &other) const { return other.m_ptr == m_ptr; }
+  bool
+  operator==(const array_it &other) const {
+    return other.m_ptr == m_ptr;
+  }
 
 public:
-  friend void swap(array_it &a, array_it &b) { std::swap(a.m_ptr, b.m_ptr); }
+  friend void swap(array_it &a,
+                   array_it &b) {
+    std::swap(a.m_ptr, b.m_ptr);
+  }
 
 private:
   t_ptr m_ptr;
