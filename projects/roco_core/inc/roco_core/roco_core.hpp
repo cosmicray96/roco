@@ -17,7 +17,12 @@ concept is_movable = requires(T a, T b) {
 };
 
 template <typename T>
+concept is_copyable = requires(T a, T b) {
+  { T(a) };
+  { b = a };
+};
 
+template <typename T>
 concept is_printable = requires(std::ostream &os, T a) {
   { os << a } -> std::same_as<std::ostream &>;
 };

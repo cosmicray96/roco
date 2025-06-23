@@ -5,6 +5,7 @@
 #include "roco_core/collections/iterator.hpp"
 
 #include <cassert>
+#include <random>
 
 using namespace roco::core::allocators;
 using namespace roco::core::collections;
@@ -43,15 +44,30 @@ private:
 };
 
 template <typename T>
-  requires is_sortable<T> && is_collection_elem<T>
-void randomize(array<T, 10, heap> &arr) {
+  requires is_iterator_randacc<T>
+void randomize(span<T> s) {
   using std::swap;
+  T it1 = s.b;
+  T it2 = s.e;
+  it2.dec();
+  if (it2 == it1) {
+    return;
+  }
+  std::mt19937 rng(1000);
+  std::uniform_int_distribution<int> dist(0, 1);
 
-  swap(arr[6], arr[9]);
-  swap(arr[5], arr[4]);
-  swap(arr[2], arr[7]);
-  swap(arr[1], arr[0]);
-  swap(arr[8], arr[3]);
+  while (it1 != s.e) {
+    T it2 = s.e;
+    it2.dec();
+    while (it1 != it2) {
+      if (dist(rng)) {
+        swap(*it1, *it2);
+      }
+
+      it2.dec();
+    }
+    it1.inc();
+  }
 }
 
 int main() {
@@ -76,7 +92,9 @@ int main() {
 
     std::cout << "arr : " << arr << std::endl;
 
-    randomize(arr);
+    span<array_it<int32_t, 10, heap, false>> s(arr.to_array_it_beg(),
+                                               arr.to_array_it_end());
+    randomize(s);
     std::cout << "rand: " << arr << std::endl;
     sort(it1, it2);
     std::cout << "sort: " << arr << std::endl;
@@ -97,8 +115,9 @@ int main() {
     array_it<atest, 10, heap, false> it2 = arr.to_array_it_end();
 
     std::cout << "arr : " << arr << std::endl;
-
-    randomize<atest>(arr);
+    span<array_it<atest, 10, heap, false>> s(arr.to_array_it_beg(),
+                                             arr.to_array_it_end());
+    randomize(s);
     std::cout << "rand: " << arr << std::endl;
     sort(it1, it2);
     std::cout << "sort: " << arr << std::endl;
