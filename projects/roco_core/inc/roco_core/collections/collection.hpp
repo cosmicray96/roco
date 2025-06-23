@@ -13,9 +13,7 @@ namespace collections {
 
 template <typename T>
 concept is_collection_elem =
-    std::copyable<T> &&
-    roco::core::is_movable<T> &&
-    std::default_initializable<T>;
+    roco::core::is_movable<T> && std::default_initializable<T>;
 
 template <typename T>
 concept is_collection =

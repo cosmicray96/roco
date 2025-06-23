@@ -5,6 +5,7 @@ set(tests
 	"roco_core_iterator_test"
 	"roco_core_ptr_test"
 	"roco_core_allocators_test"
+	"roco_core_algo_test"
 )
 
 if(DEFINED passed_tests)
