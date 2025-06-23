@@ -79,6 +79,11 @@ public:
     return array_it<T, N, A, false>(m_data +
                                     N);
   }
+  span<array_it<T, N, A, false>> to_span() {
+    return span<array_it<T, N, A, false>>(
+        to_array_it_beg(),
+        to_array_it_end());
+  }
   array_it<T, N, A, true>
   to_array_it_beg_const() const {
     return array_it<T, N, A, true>(m_data);
@@ -87,6 +92,12 @@ public:
   to_array_it_end_const() const {
     return array_it<T, N, A, true>(m_data +
                                    N);
+  }
+  span<array_it<T, N, A, true>>
+  to_span_const() {
+    return span<array_it<T, N, A, true>>(
+        to_array_it_beg(),
+        to_array_it_end());
   }
 
 public:

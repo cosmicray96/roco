@@ -9,24 +9,29 @@ namespace core {
 namespace algo {
 
 namespace _hide {
-
 using std::swap;
 template <typename T>
 concept has_adl_swap = requires(T t) {
-  { swap(t, t) } -> std::convertible_to<void>;
+  {
+    swap(t, t)
+  } -> std::convertible_to<void>;
 };
 
 } // namespace _hide
 
 template <typename T>
-concept is_sortable = _hide::has_adl_swap<T> && requires(T t) {
-  { t == t } -> std::convertible_to<bool>;
-  { t > t } -> std::convertible_to<bool>;
-  { t < t } -> std::convertible_to<bool>;
-};
+concept is_sortable =
+    _hide::has_adl_swap<T> && requires(T t) {
+      {
+        t == t
+      } -> std::convertible_to<bool>;
+      { t > t } -> std::convertible_to<bool>;
+      { t < t } -> std::convertible_to<bool>;
+    };
 
 template <typename T>
-  requires collections::is_iterator<T> && is_sortable<typename T::t_elem>
+  requires collections::is_iterator<T> &&
+           is_sortable<typename T::t_elem>
 void sort(T beg, T end) {
   using std::swap;
 
