@@ -6,3 +6,5 @@ _outputs/
 Testing/
 
 compile_commands.json
+
+.nvim_project
