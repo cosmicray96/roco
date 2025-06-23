@@ -20,11 +20,14 @@ concept is_iterator = is_movable<T> && is_copyable<T> && requires(T t1, T t2) {
   { t1.ptr() } -> std::convertible_to<typename T::t_ptr>;
   { t1.operator->() } -> std::convertible_to<typename T::t_ptr>;
   { t1 == t2 } -> std::convertible_to<bool>;
+
+  { t1.distance(t2) } -> std::convertible_to<size_t>;
 };
 
 template <typename T>
 concept is_iterator_back = is_iterator<T> && requires(T t) {
   { t.dec() } -> std::same_as<void>;
+  { t.distance_signed(t) } -> std::convertible_to<roco::core::ssize_t>;
 };
 
 template <typename T>

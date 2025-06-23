@@ -126,5 +126,43 @@ int main() {
       assert(*it1 == i);
     }
   }
+  { // sort bubble
+    auto res = array<atest, 10, heap>::make();
+    assert(!res.has_error());
+    array<atest, 10, heap> arr = res.take_value();
+    for (size_t i = 0; i < 10; i++) {
+      arr[i] = i;
+    }
+
+    std::cout << "arr : " << arr << std::endl;
+    span<array_it<atest, 10, heap, false>> s(arr.to_array_it_beg(),
+                                             arr.to_array_it_end());
+    randomize(s);
+    std::cout << "rand: " << arr << std::endl;
+    bubble_sort(s);
+    std::cout << "b sort: " << arr << std::endl;
+    for (size_t i = 0; i < arr.capacity(); i++) {
+      assert(arr[i] == i);
+    }
+  }
+  { // sort selection
+    auto res = array<atest, 10, heap>::make();
+    assert(!res.has_error());
+    array<atest, 10, heap> arr = res.take_value();
+    for (size_t i = 0; i < 10; i++) {
+      arr[i] = i;
+    }
+
+    std::cout << "arr : " << arr << std::endl;
+    span<array_it<atest, 10, heap, false>> s(arr.to_array_it_beg(),
+                                             arr.to_array_it_end());
+    randomize(s);
+    std::cout << "rand: " << arr << std::endl;
+    selection_sort(s);
+    std::cout << "b sort: " << arr << std::endl;
+    for (size_t i = 0; i < arr.capacity(); i++) {
+      assert(arr[i] == i);
+    }
+  }
   return 0;
 }

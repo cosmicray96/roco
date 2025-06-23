@@ -1,17 +1,15 @@
 #pragma once
 
-#include "roco_core/algo/sort.hpp"
-#include "roco_core/collections/iterator.hpp"
-#include <random>
-
 namespace roco {
 namespace core {
 namespace algo {
 
-template <typename T>
-  requires collections::is_iterator_randacc<T> &&
-           is_sortable<typename T::t_elem>
-void randomize(T beg, T end) {}
+template <typename T> T abs(const T &t) {
+  if (t > 0 || t == 0) {
+    return t;
+  }
+  return -t;
+}
 
 } // namespace algo
 } // namespace core
