@@ -204,6 +204,10 @@ cmake -S "./" -B "./_builds/$config/" \
 	-DCMAKE_SYSTEM_NAME="$target" \
 	-DCMAKE_EXPORT_COMPILE_COMMANDS=1
 
+if [[ ! -e './compile_commands.json' ]]; then
+	ln -s _builds/Debug/compile_commands.json .
+fi
+
 if [[ "$is_build" == "true" ]]; then
 	cmake --build "./_builds/$config/"
 fi
