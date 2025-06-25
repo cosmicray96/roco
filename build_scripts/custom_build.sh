@@ -5,16 +5,21 @@ set -e
 cd "$(dirname "$0")"
 cd ..
 
+valid_languages=("C" "CPP")
 valid_compilers=("g++" "clang++" "msvc")
 valid_targets=("Linux" "Windows" "Mac")
 valid_configs=("Debug" "Release" "RelWithDebInfo" "MinSizeRel")
 existing_projects=()
 existing_tests=()
+header_exts=()
+source_exts=()
 
 mode="none"
 
 projects=()
 tests=()
+language="none"
+version="none"
 compiler="clang++"
 config="Debug"
 target="Linux"
@@ -24,6 +29,16 @@ is_all_project="false"
 previous_project="none"
 
 #########
+
+set_file_extensions() {
+if [[ "$language" == "C" ]]; then
+	header_exts=("h")
+	source_exts=("c")
+elif [[ "$language" == "CPP" ]]; then
+	header_exts=("h" "hpp")
+	source_exts=("c" "cpp")
+fi
+}
 
 collect_projects() {
 	local project_paths=()
@@ -42,12 +57,14 @@ collect_tests() {
 		if [[ ! -d "./projects/$project/tests/" ]]; then
 			continue
 		fi
-		mapfile -t test_paths < <(find "./projects/$project/tests/" -mindepth 1 -maxdepth 1 -type f -name "*.cpp")
+		for ext in "${source_exts[@]}"; do
+			mapfile -t test_paths < <(find "./projects/$project/tests/" -mindepth 1 -maxdepth 1 -type f -name "*.$ext")
 
-		for test_path in "${test_paths[@]}"; do
-			local test_path_ext="$(basename "$test_path")"
-			local test_name="${test_path_ext%.*}"
-			existing_tests+=("$project/$test_name")
+			for test_path in "${test_paths[@]}"; do
+				local test_path_ext="$(basename "$test_path")"
+				local test_name="${test_path_ext%.*}"
+				existing_tests+=("$project/$test_name")
+			done
 		done
 	done
 }
@@ -60,12 +77,15 @@ add_all_tests_for_project() {
 		exit 1
 	fi
 	local test_paths=()
-	mapfile -t test_paths < <(find "./projects/$project_name/tests/" -mindepth 1 -maxdepth 1 -type f -name "*.cpp")
+	for ext in "${source_exts[@]}"; do
+		mapfile -t test_paths < <(find "./projects/$project_name/tests/" -mindepth 1 -maxdepth 1 -type f -name "*.$ext")
 
-	for test_path in "${test_paths[@]}"; do
-		local test_path_ext="$(basename "$test_path")"
-		local test_name="${test_path_ext%.*}"
-		tests+=("$project_name/$test_name")
+		for test_path in "${test_paths[@]}"; do
+			local test_path_ext="$(basename "$test_path")"
+			local test_name="${test_path_ext%.*}"
+			tests+=("$project_name/$test_name")
+		done
+
 	done
 
 }
@@ -108,6 +128,9 @@ for arg in "$@"; do
 		"--build")
 			is_build="true"
 			;;
+		"-language")
+			mode="language"
+			;;
 		"-project")
 			mode="project"
 			;;
@@ -126,6 +149,10 @@ for arg in "$@"; do
 		*)
 
 			case "$mode" in
+				"language")
+					language="$arg"
+					set_file_extensions 
+					;;
 				"project")
 					previous_project="$arg"
 					projects+=("$arg")
@@ -154,6 +181,11 @@ for arg in "$@"; do
 			;;
 	esac
 done
+
+if ! contains_element "$language" "${valid_languages[@]}"; then
+	echo "invalid language: $language" >&2
+	exit 1
+fi
 
 if ! contains_element "$compiler" "${valid_compilers[@]}"; then
 	echo "invalid compiler: $compiler" >&2
