@@ -2,9 +2,17 @@
 function(add_public_sources target_name)
 	set(path_to_target "${CMAKE_SOURCE_DIR}/projects/${target_name}")
 	
+	set(target_sources_public "")
+	if("${language}" STREQUAL "CPP")
 	file(GLOB_RECURSE target_sources_public 
 		"${path_to_target}/inc/${target_name}/*.hpp"
+		"${path_to_target}/inc/${target_name}/*.h"
 	)
+	elseif("${language}" STREQUAL "C")
+	file(GLOB_RECURSE target_sources_public 
+		"${path_to_target}/inc/${target_name}/*.h"
+	)
+	endif()
 	target_sources(${target_name} 
 		PUBLIC
 			${target_sources_public}
@@ -15,9 +23,22 @@ endfunction()
 function(add_private_sources target_name)
 	set(path_to_target "${CMAKE_SOURCE_DIR}/projects/${target_name}")
 	
+
+	set(target_sources_public "")
+	if("${language}" STREQUAL "CPP")
 	file(GLOB_RECURSE target_sources_private 
 		"${path_to_target}/src/${target_name}/*.hpp"
 		"${path_to_target}/src/${target_name}/*.cpp"
+		"${path_to_target}/src/${target_name}/*.h"
+		"${path_to_target}/src/${target_name}/*.c"
+	)
+	elseif("${language}" STREQUAL "C")
+	file(GLOB_RECURSE target_sources_private 
+		"${path_to_target}/src/${target_name}/*.h"
+		"${path_to_target}/src/${target_name}/*.c"
+	)
+	endif()
+	file(GLOB_RECURSE target_sources_private 
 	)
 	target_sources(${target_name} 
 		PRIVATE
@@ -124,12 +145,28 @@ function(add_custom_test test_name target_name)
 	)
 
 	set(path_to_target "${CMAKE_SOURCE_DIR}/projects/${target_name}")
+	set(target_sources "")
+
+	if("${language}" STREQUAL "CPP")
 	file(GLOB_RECURSE target_sources 
 		"${path_to_target}/inc/${target_name}/*.hpp"
 		"${path_to_target}/src/${target_name}/*.hpp"
 		"${path_to_target}/src/${target_name}/*.cpp"
 		"${path_to_target}/tests/${test_name}.cpp"
+		"${path_to_target}/inc/${target_name}/*.h"
+		"${path_to_target}/src/${target_name}/*.h"
+		"${path_to_target}/src/${target_name}/*.c"
+		"${path_to_target}/tests/${test_name}.c"
 	)
+	elseif("${language}" STREQUAL "C")
+	file(GLOB_RECURSE target_sources 
+		"${path_to_target}/inc/${target_name}/*.h"
+		"${path_to_target}/src/${target_name}/*.h"
+		"${path_to_target}/src/${target_name}/*.c"
+		"${path_to_target}/tests/${test_name}.c"
+	)
+	endif()
+
 	target_sources(${test_name} 
 		PRIVATE
 			${target_sources}

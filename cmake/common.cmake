@@ -4,6 +4,15 @@ endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(language "")
+if(CMAKE_CXX_COMPILER_LOADED)
+	set(language "CPP")
+elseif(CMAKE_C_COMPILER_LOADED)
+	set(language "C")
+else()
+	message(FATAL_ERROR "Bad Compiler Setting")
+endif()
+
 
 
 set(output_directory "${CMAKE_SOURCE_DIR}/_outputs")
