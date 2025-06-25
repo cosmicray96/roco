@@ -105,8 +105,6 @@ contains_element() {
 
 ##########
 
-collect_projects
-collect_tests
 
 
 for arg in "$@"; do
@@ -152,6 +150,8 @@ for arg in "$@"; do
 				"language")
 					language="$arg"
 					set_file_extensions 
+					collect_projects
+					collect_tests
 					;;
 				"project")
 					previous_project="$arg"

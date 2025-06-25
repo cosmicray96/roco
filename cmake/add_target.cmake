@@ -1,5 +1,5 @@
 
-function(add_public_sources target_name)
+function(get_public_sources target_name public_sources)
 	set(path_to_target "${CMAKE_SOURCE_DIR}/projects/${target_name}")
 	
 	set(target_sources_public "")
@@ -13,18 +13,16 @@ function(add_public_sources target_name)
 		"${path_to_target}/inc/${target_name}/*.h"
 	)
 	endif()
-	target_sources(${target_name} 
-		PUBLIC
-			${target_sources_public}
-	)	
+
+	set(public_sources "${target_sources_public}" PARENT_SCOPE)
 endfunction()
 
 
-function(add_private_sources target_name)
+function(get_private_sources target_name private_sources)
 	set(path_to_target "${CMAKE_SOURCE_DIR}/projects/${target_name}")
 	
 
-	set(target_sources_public "")
+	set(target_sources_private "")
 	if("${language}" STREQUAL "CPP")
 	file(GLOB_RECURSE target_sources_private 
 		"${path_to_target}/src/${target_name}/*.hpp"
@@ -38,12 +36,8 @@ function(add_private_sources target_name)
 		"${path_to_target}/src/${target_name}/*.c"
 	)
 	endif()
-	file(GLOB_RECURSE target_sources_private 
-	)
-	target_sources(${target_name} 
-		PRIVATE
-			${target_sources_private}
-	)	
+
+	set(private_sources "${target_sources_private}" PARENT_SCOPE)
 endfunction()
 
 
@@ -68,12 +62,21 @@ endfunction()
 
 
 function(add_static_target target_name)
-	
-	add_library(${target_name} STATIC)
-	target_common(${target_name})
 
-	add_public_sources(${target_name})
-	add_private_sources(${target_name})
+	set(public_sources "")
+	set(private_sources "")
+	get_public_sources(${target_name} public_sources)
+	get_private_sources(${target_name} private_sources)
+
+	add_library(${target_name} STATIC
+		${private_sources}
+	)
+	target_sources(${target_name} 
+		PUBLIC
+			${public_sources}
+	)	
+
+	target_common(${target_name})
 
 	set(path_to_target "${CMAKE_SOURCE_DIR}/projects/${target_name}")
 	target_include_directories(${target_name}
@@ -90,11 +93,13 @@ endfunction()
 
 function(add_executable_target target_name)
 	
-	add_executable(${target_name})
-	target_common(${target_name})
+	set(private_sources "")
+	get_private_sources(${target_name} private_sources)
+	add_executable(${target_name} 
+		${private_sources}
+	)
 
-	# add_public_sources(${target_name})
-	add_private_sources(${target_name})
+	target_common(${target_name})
 
 	set(path_to_target "${CMAKE_SOURCE_DIR}/projects/${target_name}")
 	target_include_directories(${target_name}
@@ -117,11 +122,19 @@ endfunction()
 
 function(add_dynamic_target target_name)
 	
+	set(public_sources "")
+	set(private_sources "")
+	get_public_sources(${target_name} public_sources)
+	get_private_sources(${target_name} private_sources)
+	add_library(${target_name} SHARED
+		${private_sources})
+	target_sources(${target_name} 
+		PUBLIC
+			"${public_sources}"
+	)	
+
 	add_library(${target_name} SHARED)
 	target_common(${target_name})
-
-	add_public_sources(${target_name})
-	add_private_sources(${target_name})
 
 	set(path_to_target "${CMAKE_SOURCE_DIR}/projects/${target_name}")
 	target_include_directories(${target_name}
@@ -137,18 +150,13 @@ endfunction()
 
 
 function(add_custom_test test_name target_name)
-	add_executable(${test_name})
-	target_common(${test_name})
 
-	add_test(NAME ${test_name}
-		COMMAND ${test_name}
-	)
 
 	set(path_to_target "${CMAKE_SOURCE_DIR}/projects/${target_name}")
-	set(target_sources "")
+	set(private_sources "")
 
 	if("${language}" STREQUAL "CPP")
-	file(GLOB_RECURSE target_sources 
+	file(GLOB_RECURSE private_sources 
 		"${path_to_target}/inc/${target_name}/*.hpp"
 		"${path_to_target}/src/${target_name}/*.hpp"
 		"${path_to_target}/src/${target_name}/*.cpp"
@@ -159,7 +167,7 @@ function(add_custom_test test_name target_name)
 		"${path_to_target}/tests/${test_name}.c"
 	)
 	elseif("${language}" STREQUAL "C")
-	file(GLOB_RECURSE target_sources 
+	file(GLOB_RECURSE private_sources 
 		"${path_to_target}/inc/${target_name}/*.h"
 		"${path_to_target}/src/${target_name}/*.h"
 		"${path_to_target}/src/${target_name}/*.c"
@@ -167,10 +175,10 @@ function(add_custom_test test_name target_name)
 	)
 	endif()
 
-	target_sources(${test_name} 
-		PRIVATE
-			${target_sources}
-	)	
+	add_executable(${test_name} ${private_sources})
+
+	target_common(${test_name})
+
 	target_include_directories(${test_name}
 		PRIVATE
 			"${path_to_target}/inc/"	
@@ -190,6 +198,10 @@ function(add_custom_test test_name target_name)
 
 	set_target_properties(${test_name} PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY "${test_directory}"
+	)
+
+	add_test(NAME ${test_name}
+		COMMAND ${test_name}
 	)
 
 	message("Test Added for ${target_name}: ${test_name}")

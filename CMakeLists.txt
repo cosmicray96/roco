@@ -8,8 +8,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Later: include(helper modules here)
-include("${CMAKE_CURRENT_LIST_DIR}/cmake/check.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/common.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/check.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/add_defines.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/add_target.cmake")
 
