@@ -19,8 +19,8 @@ public:
   ~atest() = default;
   atest(int32_t i) : m_i(i) {}
 
-  atest(const atest &other) = delete;
-  atest &operator=(const atest &other) = delete;
+  atest(const atest &other) = default;
+  atest &operator=(const atest &other) = default;
 
   atest(atest &&other) = default;
   atest &operator=(atest &&other) = default;

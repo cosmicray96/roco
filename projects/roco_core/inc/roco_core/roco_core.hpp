@@ -1,5 +1,6 @@
 #pragma once
 
+#include "roco_core/error_enum.hpp"
 #include <concepts>
 #include <cstdlib>
 #include <iostream>
@@ -30,6 +31,7 @@ concept is_printable = requires(std::ostream &os, T a) {
 };
 
 void crash_program(const char *msg);
+void crash_program(error_enum error, const char *msg);
 
 class roco_core {
 public:

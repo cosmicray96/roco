@@ -25,7 +25,11 @@ template <typename T, size_t N, typename A, bool t_is_const> class array_it;
 
 template <typename T, size_t N, typename A> class array {
 public:
-  static_assert(allocators::is_allocator<A>, "A is not an allocator");
+  using t_elem = T;
+
+public:
+  static_assert(is_collection_elem<T>);
+  static_assert(allocators::is_allocator<A>);
 
 private:
   array() = default;
@@ -103,14 +107,21 @@ public:
   }
 
 public:
-  template <typename... Args>
-  static roco::core::result<array, roco::core::error_enum> make(Args &&...args)
-    requires is_movable<T> &&
-             (std::is_default_constructible_v<T> || sizeof...(Args) > 0)
-  {
+  static result<array, error_enum> make(T t) {
     array<T, N, A> arr;
     roco::core::result<T *, roco::core::error_enum> res =
-        allocators::alloc_type_array<A, T>(N, std::forward<Args>(args)...);
+        allocators::alloc_type_array<A, T>(N, std::move(t));
+
+    if (res.has_error()) {
+      return {res.take_error()};
+    }
+    arr.m_data = res.take_value();
+    return {std::move(arr)};
+  }
+  static result<array, error_enum> make() {
+    array<T, N, A> arr;
+    roco::core::result<T *, roco::core::error_enum> res =
+        allocators::alloc_type_array<A, T>(N);
 
     if (res.has_error()) {
       return {res.take_error()};
