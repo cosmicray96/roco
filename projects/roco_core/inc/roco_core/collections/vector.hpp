@@ -54,7 +54,7 @@ public:
 
 public: // stdandard functions
   void push(T t) {
-    if (m_count == m_capacity - 1) {
+    if (m_count == m_capacity) {
       resize();
     }
     m_data[m_count] = std::move(t);
@@ -95,9 +95,7 @@ private:
 
 public: // friends and operator
   T &operator[](size_t index) {
-    if (index + 1 > m_count) {
-      m_count = index;
-    }
+    m_count = algo::max(m_count, index + 1);
     return m_data[index];
   }
   const T &operator[](size_t index) const { return m_data[index]; }
@@ -126,19 +124,6 @@ public: // friends and operator
   }
 
 public: // static
-  static result<vector, error_enum> make(T t) {
-    vector v;
-    auto res =
-        allocators::alloc_type_array<A, T>(vector_d::start_cap, std::move(t));
-    if (res.has_error()) {
-      return {res.take_error()};
-    }
-    v.m_data = res.take_value();
-    v.m_count = vector_d::start_cap;
-    v.m_capacity = vector_d::start_cap;
-
-    return {std::move(v)};
-  }
   static result<vector, error_enum> make() {
     vector v;
     auto res = allocators::alloc_type_array<A, T>(vector_d::start_cap);

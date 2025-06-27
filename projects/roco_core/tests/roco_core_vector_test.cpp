@@ -1,6 +1,8 @@
+#include "roco_core/algo/algo.hpp"
 #include "roco_core/allocators/heap.hpp"
 #include "roco_core/collections/collection.hpp"
 #include "roco_core/collections/vector.hpp"
+#include "roco_core/roco_core.hpp"
 #include "roco_core/smart_ptr.hpp"
 #include <cassert>
 #include <cstdint>
@@ -16,8 +18,7 @@ public:
   ~atest() = default;
 
   atest(const atest &other) = default;
-  atest &
-  operator=(const atest &other) = default;
+  atest &operator=(const atest &other) = default;
 
   atest(atest &&other) = default;
   atest &operator=(atest &&other) = default;
@@ -25,8 +26,7 @@ public:
 public:
   int32_t get() { return m_i; }
 
-  friend std::ostream &
-  operator<<(std::ostream &os, atest &a) {
+  friend std::ostream &operator<<(std::ostream &os, atest &a) {
     os << a.m_i;
     return os;
   }
@@ -42,137 +42,127 @@ int main() {
   using namespace roco::core;
   using heap = roco::core::allocators::heap;
 
-  static_assert(
-      is_collection<vector<int32_t, heap>>);
+  static_assert(is_collection<vector<int32_t, heap>>);
 
-  { // vector creation success, default ctor
+  { // basic creation
     auto res = vector<int32_t, heap>::make();
     assert(!res.has_error());
-    vector<int32_t, heap> arr =
-        res.take_value();
-    assert(arr.capacity() ==
-           vector_d::start_cap);
-    assert(arr.count() == 0);
-  }
-  { // ctor with value
-    auto res =
-        vector<int32_t, heap>::make(21);
-    assert(!res.has_error());
-    vector<int32_t, heap> arr =
-        res.take_value();
-    for (size_t i = 0; i < arr.capacity();
-         i++) {
-      assert(arr[i] == 21);
+    vector<int32_t, heap> v = res.take_value();
+    assert(v.capacity() == vector_d::start_cap);
+    assert(v.count() == 0);
+    for (size_t i = 0; i < v.capacity(); i++) {
+      assert(v[i] == 0);
     }
-    assert(arr.count() ==
-           vector_d::start_cap);
+    assert(v.capacity() == vector_d::start_cap);
+    assert(v.count() == v.capacity());
   }
-  { // non default ctor
-    auto res = vector<atest, heap>::make(21);
-    assert(!res.has_error());
-    vector<atest, heap> arr =
-        res.take_value();
-    for (size_t i = 0; i < arr.capacity();
-         i++) {
-      assert(arr[i].get() == 21);
+  { // push
+    auto v = vector<int32_t, heap>::make().take_value();
+    for (size_t i = 0; i < algo::min(vector_d::start_cap - 1, 0); i++) {
+      v.push(i);
+    }
+
+    for (size_t i = 0; i < algo::min(vector_d::start_cap - 1, 0); i++) {
+      assert(v[i] == i);
     }
   }
-  { // non default with no args
-    //    auto res = vector<atest, 10,
-    //    heap>::make();
-  }
-  { // moves assign
-    auto res =
-        vector<int32_t, heap>::make(21);
-    assert(!res.has_error());
-    vector<int32_t, heap> arr =
-        res.take_value();
-    vector<int32_t, heap> arr1 =
-        std::move(arr);
-    for (size_t i = 0; i < arr1.capacity();
-         i++) {
-      assert(arr1[i] == 21);
+  { // no resize untill full capacity
+    auto v = vector<int32_t, heap>::make().take_value();
+    size_t v_cap = v.capacity();
+    for (size_t i = 0; i < v_cap; i++) {
+      v.push(i);
     }
+    DEBUG_VAR(v.capacity());
+    DEBUG_VAR(v_cap);
+    assert(v.capacity() == v_cap);
+    assert(v.capacity() == v.count());
   }
-  { // move ctor
-    auto res =
-        vector<int32_t, heap>::make(21);
-    assert(!res.has_error());
-    vector<int32_t, heap> arr =
-        res.take_value();
-    vector<int32_t, heap> arr1(
-        std::move(arr));
-    for (size_t i = 0; i < arr1.capacity();
-         i++) {
-      assert(arr1[i] == 21);
+  { // resize
+    auto v = vector<int32_t, heap>::make().take_value();
+    size_t v_cap = v.capacity();
+    for (size_t i = 0; i < v_cap + 1; i++) {
+      v.push(i);
     }
+    assert(v.capacity() != v_cap);
+    assert(v.count() == v_cap + 1);
+    assert(v.capacity() == v_cap * vector_d::growth_factor);
   }
-  { // move assign into existing
-    auto res =
-        vector<int32_t, heap>::make(21);
-    assert(!res.has_error());
-    vector<int32_t, heap> arr =
-        res.take_value();
-    auto res1 =
-        vector<int32_t, heap>::make(42);
-    assert(!res1.has_error());
-    vector<int32_t, heap> arr1 =
-        res1.take_value();
-    arr1 = std::move(arr);
-    for (size_t i = 0; i < arr1.capacity();
-         i++) {
-      assert(arr1[i] == 21);
+  { // move
+    auto v = vector<int32_t, heap>::make().take_value();
+    for (size_t i = 0; i < v.capacity(); i++) {
+      v.push(i);
     }
+    vector<int32_t, heap> v1 = std::move(v);
+    assert(v.capacity() == 0);
+    assert(v.count() == 0);
+    assert(v1.capacity() == vector_d::start_cap);
+    assert(v1.count() == v1.capacity());
   }
-  { // moved into another then died
-    auto res =
-        vector<int32_t, heap>::make(21);
-    assert(!res.has_error());
-    vector<int32_t, heap> arr =
-        res.take_value();
+  { // move, ctor
+    auto v = vector<int32_t, heap>::make().take_value();
+    for (size_t i = 0; i < v.capacity(); i++) {
+      v.push(i);
+    }
+    vector<int32_t, heap> v1(std::move(v));
+    assert(v.capacity() == 0);
+    assert(v.count() == 0);
+    assert(v1.capacity() == vector_d::start_cap);
+    assert(v1.count() == v1.capacity());
+  }
+  { // move, old deleted
+    auto v = vector<int32_t, heap>::make().take_value();
     {
-      auto res1 =
-          vector<int32_t, heap>::make(42);
-      assert(!res1.has_error());
-      vector<int32_t, heap> arr1 =
-          res1.take_value();
-      arr = std::move(arr1);
+      auto v1 = vector<int32_t, heap>::make().take_value();
+      for (size_t i = 0; i < v1.capacity(); i++) {
+        v1.push(21);
+      }
+      v = std::move(v1);
     }
-    for (size_t i = 0; i < arr.capacity();
-         i++) {
-      assert(arr[i] == 42);
+    for (size_t i = 0; i < v.capacity(); i++) {
+      assert(v[i] == 21);
+    }
+  }
+  { // move, resize
+    auto v = vector<int32_t, heap>::make().take_value();
+    size_t v_cap = v.capacity();
+    for (size_t i = 0; i < v_cap + 1; i++) {
+      v.push(i);
+    }
+    vector<int32_t, heap> v1 = std::move(v);
+    for (size_t i = 0; i < v_cap + 1; i++) {
+      assert(v1[i] == i);
+    }
+  }
+  { // move, resize, ctor
+    auto v = vector<int32_t, heap>::make().take_value();
+    size_t v_cap = v.capacity();
+    for (size_t i = 0; i < v_cap + 1; i++) {
+      v.push(i);
+    }
+    vector<int32_t, heap> v1(std::move(v));
+    for (size_t i = 0; i < v_cap + 1; i++) {
+      assert(v1[i] == i);
+    }
+  }
+  { // move, old deleted, resize
+    auto v = vector<int32_t, heap>::make().take_value();
+    size_t v_cap = v.capacity();
+    {
+      auto v1 = vector<int32_t, heap>::make().take_value();
+      for (size_t i = 0; i < v_cap + 1; i++) {
+        v1.push(21);
+      }
+      v = std::move(v1);
+    }
+    for (size_t i = 0; i < v_cap + 1; i++) {
+      assert(v[i] == 21);
     }
   }
   {
-    auto res = vector<int32_t, heap>::make();
-    assert(!res.has_error());
-    vector<int32_t, heap> arr =
-        res.take_value();
-    for (size_t i = 0;
-         i < vector_d::start_cap + 1; i++) {
-      arr.push(i);
-    }
-    assert(arr.count() ==
-           vector_d::start_cap + 1);
-    assert(arr.capacity() ==
-           vector_d::start_cap *
-               vector_d::growth_factor);
-  }
-  {
-    auto res = vector<int32_t, heap>::make();
-    assert(!res.has_error());
-    vector<int32_t, heap> arr =
-        res.take_value();
-    for (size_t i = 0;
-         i < vector_d::start_cap * 2; i++) {
-      arr.push(i);
-    }
-    assert(arr.count() ==
-           vector_d::start_cap * 2);
-    for (size_t i = 0;
-         i < vector_d::start_cap * 2; i++) {
-      assert(arr[i] == i);
-    }
+    auto v = vector<int32_t, heap>::make().take_value();
+    size_t index = algo::min(0, vector_d::start_cap - 1);
+    v[index] = 10;
+    assert(v.count() == index + 1);
   }
 
   return 0;

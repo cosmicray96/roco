@@ -9,6 +9,8 @@
 namespace roco {
 namespace core {
 
+#define DEBUG_VAR(x) std::cout << #x << " = " << (x) << std::endl;
+
 using ssize_t = std::make_signed_t<size_t>;
 
 inline bool is_non_zero_pow_2(size_t x) { return x != 0 && (x & (x - 1)) == 0; }
