@@ -70,18 +70,30 @@ concept is_allocator =
     is_allocator16<A> || is_allocator32<A> ||
     is_allocator64<A> || is_allocator_raw<A>;
 
+enum class allocator_type {
+  u16,
+  u32,
+  u64,
+  raw
+};
+
 class allocator {
 protected:
   allocator() = default;
+
+public:
+  virtual ~allocator() = default;
+
+public:
+  virtual allocator_type type_of() = 0;
+
+public:
   allocator(const allocator &other) = delete;
   allocator
   operator=(const allocator &other) = delete;
   allocator(allocator &&other) = delete;
   allocator
   operator=(allocator &&other) = delete;
-
-public:
-  virtual ~allocator() = default;
 };
 class allocator16 : public allocator {
 protected:
@@ -89,6 +101,13 @@ protected:
 
 public:
   virtual ~allocator16() = default;
+
+public:
+  virtual allocator_type type_of() override {
+    return allocator_type::u16;
+  }
+
+public:
   virtual result<uint16_t, error_enum>
   alloc(uint16_t size) = 0;
   virtual void dealloc(uint16_t size) = 0;
@@ -101,10 +120,53 @@ protected:
 
 public:
   virtual ~allocator32() = default;
+
+public:
+  virtual allocator_type type_of() override {
+    return allocator_type::u32;
+  }
+
+public:
   virtual result<uint32_t, error_enum>
   alloc(uint32_t size) = 0;
   virtual void dealloc(uint32_t size) = 0;
   virtual void *access(uint32_t handle) = 0;
+};
+
+class allocator64 : public allocator {
+protected:
+  allocator64() : allocator() {}
+
+public:
+  virtual ~allocator64() = default;
+
+public:
+  virtual allocator_type type_of() override {
+    return allocator_type::u64;
+  }
+
+public:
+  virtual result<uint64_t, error_enum>
+  alloc(uint64_t size) = 0;
+  virtual void dealloc(uint64_t size) = 0;
+  virtual void *access(uint64_t handle) = 0;
+};
+class allocator_raw : public allocator {
+protected:
+  allocator_raw() : allocator() {}
+
+public:
+  virtual ~allocator_raw() = default;
+
+public:
+  virtual allocator_type type_of() override {
+    return allocator_type::raw;
+  }
+
+public:
+  virtual result<void *, error_enum>
+  alloc(size_t size) = 0;
+  virtual void dealloc(void *ptr) = 0;
 };
 
 } // namespace _details
