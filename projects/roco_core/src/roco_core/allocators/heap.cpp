@@ -8,34 +8,29 @@ namespace roco {
 namespace core {
 namespace allocators {
 
-roco::core::result<void *, roco::core::error_enum> heap::alloc(size_t size, size_t align) {
-    using namespace roco::core;
+result<void *, error_enum>
+heap::alloc(size_t size, size_t align) {
 
-    if (size == 0) {
-        return {error_enum::alloc_bad_size};
-    }
-    if (!is_non_zero_pow_2(align)) {
-        return {error_enum::alloc_bad_align};
-    }
+  if (size == 0) {
+    return {error_enum::alloc_bad_size};
+  }
+  if (!is_non_zero_pow_2(align)) {
+    return {error_enum::alloc_bad_align};
+  }
 
-    void *ptr = aligned_alloc(align, aligned_size(size, align));
-    if (!ptr) {
-        return {error_enum::alloc_bad_alloc};
-    }
-    return {std::move(ptr)};
+  void *ptr = aligned_alloc(
+      align, aligned_size(size, align));
+  if (!ptr) {
+    return {error_enum::alloc_bad_alloc};
+  }
+  return {std::move(ptr)};
 }
-roco::core::result<void *, roco::core::error_enum> heap::alloc8(size_t size) {
-    return alloc(size, 8);
-}
-roco::core::result<void *, roco::core::error_enum> heap::alloc16(size_t size) {
-    return alloc(size, 16);
-}
-optional<roco::core::error_enum> heap::dealloc(void *ptr) {
-    if (!ptr) {
-        return {roco::core::error_enum::is_null_pointer};
-    }
-    std::free(ptr);
-    return {};
+void heap::dealloc(void *ptr) {
+  if (!ptr) {
+    crash_program(error_enum::error,
+                  "trying to free nulptr");
+  }
+  std::free(ptr);
 }
 
 } // namespace allocators
